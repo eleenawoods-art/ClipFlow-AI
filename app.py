@@ -1,3 +1,4 @@
+import re
 import shutil
 import subprocess
 import tempfile
@@ -9,7 +10,7 @@ import streamlit as st
 
 
 # =========================================================
-# CLIPFLOW AI
+# CLIPFLOW AI V2
 # =========================================================
 
 st.set_page_config(
@@ -19,69 +20,34 @@ st.set_page_config(
 )
 
 
-# =========================================================
-# DIRECTORIES
-# =========================================================
-
 BASE_DIR = Path(__file__).resolve().parent
-
 OUTPUT_DIR = BASE_DIR / "outputs"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 
 # =========================================================
-# PAGE STYLE
-# =========================================================
-
-st.markdown(
-    """
-    <style>
-
-    .block-container {
-        max-width: 1200px;
-        padding-top: 2rem;
-        padding-bottom: 3rem;
-    }
-
-    .hero {
-        padding: 1.4rem;
-        border: 1px solid rgba(128,128,128,0.25);
-        border-radius: 18px;
-        margin-bottom: 1.2rem;
-    }
-
-    .status-box {
-        padding: 1rem;
-        border-radius: 12px;
-        border: 1px solid rgba(128,128,128,0.25);
-    }
-
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-
-# =========================================================
-# HEADER
+# UI
 # =========================================================
 
 st.title("🎬 ClipFlow AI")
 
 st.write(
-    "Upload a video and ClipFlow AI automatically "
-    "creates a polished short vertical edit."
+    "Turn raw footage into a polished, ready-to-post short automatically."
 )
-
 
 st.markdown(
     """
-    <div class="hero">
-        <h3>Upload → Analyze → Smart Frame → Edit → Export</h3>
+    <div style="
+        padding:20px;
+        border:1px solid rgba(128,128,128,.25);
+        border-radius:16px;
+        margin:15px 0;
+    ">
+        <h3>Upload → Analyze → Smart Edit → Captions → Export</h3>
         <p>
-        ClipFlow analyzes your footage, selects active sections,
-        converts them to vertical format without unnecessarily
-        cutting important content, and creates a ready-to-post video.
+        ClipFlow detects active sections, removes unnecessary silence,
+        preserves important screen content, creates vertical framing,
+        and can generate automatic captions.
         </p>
     </div>
     """,
@@ -108,16 +74,16 @@ with st.sidebar:
 
     target_length = st.slider(
         "Target video length",
-        min_value=10,
-        max_value=90,
-        value=30,
+        10,
+        90,
+        30,
     )
 
     number_of_clips = st.slider(
         "Number of clips",
-        min_value=2,
-        max_value=8,
-        value=5,
+        2,
+        8,
+        5,
     )
 
     music_mood = st.selectbox(
@@ -133,36 +99,35 @@ with st.sidebar:
     )
 
     add_music = st.checkbox(
-        "Add background music",
-        value=False,
+        "🎵 Add background music",
+        False,
+    )
+
+    remove_silence = st.checkbox(
+        "⏸️ Remove long silences",
+        True,
+    )
+
+    add_captions = st.checkbox(
+        "🎙️ Generate auto captions",
+        True,
     )
 
     st.divider()
 
     st.caption(
-        "🎵 Use only music you have permission to use."
+        "Use only music you have permission to use."
     )
 
 
 # =========================================================
-# VIDEO UPLOAD
+# UPLOADS
 # =========================================================
 
 video_file = st.file_uploader(
     "📁 Upload your video",
-    type=[
-        "mp4",
-        "mov",
-        "m4v",
-        "avi",
-    ],
-    help="Maximum upload size depends on your Streamlit configuration.",
+    type=["mp4", "mov", "m4v", "avi"],
 )
-
-
-# =========================================================
-# MUSIC UPLOAD
-# =========================================================
 
 music_file = None
 
@@ -170,14 +135,7 @@ if add_music:
 
     music_file = st.file_uploader(
         "🎵 Upload royalty-safe music",
-        type=[
-            "mp3",
-            "wav",
-            "m4a",
-        ],
-        help=(
-            "Upload music that you are legally allowed to use."
-        ),
+        type=["mp3", "wav", "m4a"],
     )
 
 
@@ -195,20 +153,15 @@ def get_ffmpeg():
 
     except Exception:
 
-        system_ffmpeg = shutil.which("ffmpeg")
+        found = shutil.which("ffmpeg")
 
-        if system_ffmpeg:
-            return system_ffmpeg
-
-        return "ffmpeg"
+        return found or "ffmpeg"
 
 
-def run_ffmpeg(arguments):
-
-    ffmpeg = get_ffmpeg()
+def run_ffmpeg(args):
 
     result = subprocess.run(
-        [ffmpeg] + arguments,
+        [get_ffmpeg()] + args,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
@@ -216,43 +169,37 @@ def run_ffmpeg(arguments):
 
     if result.returncode != 0:
 
-        error_text = result.stderr
+        error = result.stderr
 
-        if len(error_text) > 4000:
-            error_text = error_text[-4000:]
+        if len(error) > 5000:
+            error = error[-5000:]
 
-        raise RuntimeError(error_text)
+        raise RuntimeError(error)
 
     return result
 
 
 # =========================================================
-# VIDEO INFORMATION
+# VIDEO INFO
 # =========================================================
 
-def get_video_info(video_path):
+def get_video_info(path):
 
-    cap = cv2.VideoCapture(
-        str(video_path)
-    )
+    cap = cv2.VideoCapture(str(path))
 
     width = int(
-        cap.get(
-            cv2.CAP_PROP_FRAME_WIDTH
-        )
+        cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     )
 
     height = int(
-        cap.get(
-            cv2.CAP_PROP_FRAME_HEIGHT
-        )
+        cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
     )
 
     fps = cap.get(
         cv2.CAP_PROP_FPS
     )
 
-    frame_count = cap.get(
+    frames = cap.get(
         cv2.CAP_PROP_FRAME_COUNT
     )
 
@@ -263,21 +210,19 @@ def get_video_info(video_path):
 
     duration = 0
 
-    if frame_count and frame_count > 0:
-        duration = frame_count / fps
+    if frames:
+        duration = frames / fps
 
     return width, height, fps, duration
 
 
 # =========================================================
-# VIDEO ANALYSIS
+# SCENE ANALYSIS
 # =========================================================
 
-def analyze_video(video_path):
+def analyze_video(path):
 
-    cap = cv2.VideoCapture(
-        str(video_path)
-    )
+    cap = cv2.VideoCapture(str(path))
 
     fps = cap.get(
         cv2.CAP_PROP_FPS
@@ -286,327 +231,307 @@ def analyze_video(video_path):
     if not fps or fps <= 0:
         fps = 25
 
-    frame_count = cap.get(
+    frames = cap.get(
         cv2.CAP_PROP_FRAME_COUNT
     )
 
-    duration = 0
+    duration = (
+        frames / fps
+        if frames
+        else 0
+    )
 
-    if frame_count:
-        duration = frame_count / fps
-
-    previous_frame = None
+    previous = None
 
     timestamps = []
     scores = []
 
     frame_number = 0
 
-    sample_every = max(
+    step = max(
         1,
-        int(fps * 0.5),
+        int(fps * 0.5)
     )
 
     while True:
 
-        success, frame = cap.read()
+        ok, frame = cap.read()
 
-        if not success:
+        if not ok:
             break
 
-        if frame_number % sample_every == 0:
+        if frame_number % step == 0:
 
             small = cv2.resize(
                 frame,
-                (160, 90),
+                (160, 90)
             )
 
             gray = cv2.cvtColor(
                 small,
-                cv2.COLOR_BGR2GRAY,
+                cv2.COLOR_BGR2GRAY
             )
 
-            if previous_frame is not None:
+            if previous is not None:
 
-                difference = cv2.absdiff(
+                diff = cv2.absdiff(
                     gray,
-                    previous_frame,
+                    previous
                 )
 
-                score = float(
-                    difference.mean()
+                scores.append(
+                    float(diff.mean())
                 )
 
                 timestamps.append(
                     frame_number / fps
                 )
 
-                scores.append(score)
-
-            previous_frame = gray
+            previous = gray
 
         frame_number += 1
 
     cap.release()
 
-    return (
-        duration,
-        timestamps,
-        scores,
-    )
+    return duration, timestamps, scores
 
 
 # =========================================================
-# FIND BEST SECTIONS
+# SELECT BEST CLIPS
 # =========================================================
 
-def find_best_sections(
+def select_clips(
     duration,
     timestamps,
     scores,
-    number_of_clips,
-    target_length,
+    count,
+    target,
 ):
 
     if duration <= 0:
         return []
 
-    # No scene-change data
     if not scores:
 
-        clip_length = min(
-            duration,
-            max(
-                3,
-                target_length / number_of_clips,
-            ),
+        each = max(
+            2,
+            target / count
         )
 
         return [
             (
-                i * clip_length,
+                i * each,
                 min(
                     duration,
-                    (i * clip_length)
-                    + clip_length,
-                ),
+                    (i + 1) * each
+                )
             )
-            for i in range(number_of_clips)
-            if i * clip_length < duration
+            for i in range(count)
+            if i * each < duration
         ]
 
-    scores_array = np.asarray(
+    values = np.asarray(
         scores,
-        dtype=float,
+        dtype=float
     )
 
-    # Smooth noisy changes
-    if len(scores_array) >= 5:
+    if len(values) >= 5:
 
         kernel = np.ones(5) / 5
 
-        smoothed = np.convolve(
-            scores_array,
+        values = np.convolve(
+            values,
             kernel,
-            mode="same",
+            mode="same"
         )
 
-    else:
-
-        smoothed = scores_array
-
     threshold = np.percentile(
-        smoothed,
-        60,
+        values,
+        60
     )
 
-    candidates = []
+    windows = []
 
     for timestamp, score in zip(
         timestamps,
-        smoothed,
+        values
     ):
 
         if score >= threshold:
 
-            candidates.append(
-                timestamp
-            )
-
-    windows = []
-
-    for timestamp in candidates:
-
-        start = max(
-            0,
-            timestamp - 2,
-        )
-
-        end = min(
-            duration,
-            timestamp + 4,
-        )
-
-        if not windows:
-
-            windows.append(
-                [start, end]
-            )
-
-        elif start <= windows[-1][1] + 2:
-
-            windows[-1][1] = max(
-                windows[-1][1],
-                end,
-            )
-
-        else:
-
-            windows.append(
-                [start, end]
-            )
-
-    # Fallback if scene analysis is weak
-    if len(windows) < number_of_clips:
-
-        windows = []
-
-        segment_length = (
-            duration /
-            number_of_clips
-        )
-
-        for i in range(
-            number_of_clips
-        ):
-
-            start = (
-                i *
-                segment_length
+            start = max(
+                0,
+                timestamp - 2
             )
 
             end = min(
                 duration,
-                start + segment_length,
+                timestamp + 4
+            )
+
+            if not windows:
+
+                windows.append(
+                    [start, end]
+                )
+
+            elif start <= windows[-1][1] + 2:
+
+                windows[-1][1] = max(
+                    windows[-1][1],
+                    end
+                )
+
+            else:
+
+                windows.append(
+                    [start, end]
+                )
+
+    if len(windows) < count:
+
+        windows = []
+
+        segment = (
+            duration / count
+        )
+
+        for i in range(count):
+
+            start = i * segment
+
+            end = min(
+                duration,
+                start + segment
             )
 
             windows.append(
                 [start, end]
             )
 
-    # Rank windows
-    ranked = []
-
-    for start, end in windows:
-
-        length = end - start
-
-        ranked.append(
-            (
-                length,
-                start,
-                end,
-            )
-        )
-
-    ranked.sort(
+    ranked = sorted(
+        windows,
+        key=lambda x: x[1] - x[0],
         reverse=True
     )
 
     selected = []
 
-    total_duration = 0
-
-    max_duration = (
-        target_length * 1.10
-    )
-
-    per_clip_target = max(
+    per_clip = max(
         2,
-        target_length /
-        number_of_clips,
+        target / count
     )
 
-    for score, start, end in ranked:
+    total = 0
 
-        if len(selected) >= number_of_clips:
+    for start, end in ranked:
+
+        if len(selected) >= count:
             break
 
-        clip_length = min(
+        length = min(
             end - start,
-            per_clip_target,
+            per_clip
         )
 
-        if clip_length < 1:
+        if length < 1:
             continue
 
-        new_end = start + clip_length
-
         if (
-            total_duration
-            + clip_length
-            <= max_duration
+            total + length
+            <= target * 1.10
         ):
 
             selected.append(
                 (
                     start,
-                    new_end,
+                    start + length
                 )
             )
 
-            total_duration += (
-                clip_length
-            )
-
-    # Final fallback
-    if not selected:
-
-        clip_length = min(
-            duration,
-            per_clip_target,
-        )
-
-        selected.append(
-            (
-                0,
-                clip_length,
-            )
-        )
+            total += length
 
     selected.sort(
-        key=lambda item: item[0]
+        key=lambda x: x[0]
     )
 
     return selected
 
 
 # =========================================================
-# SMART VERTICAL FILTER
+# SILENCE DETECTION
 # =========================================================
 
-def get_smart_vertical_filter(
-    width,
-    height,
+def detect_silence(
+    source,
+    noise="-35dB",
+    min_duration=0.8
 ):
 
-    if width <= 0 or height <= 0:
+    result = run_ffmpeg(
+        [
+            "-i",
+            str(source),
 
-        return (
-            "scale=1080:1920:"
-            "force_original_aspect_ratio=decrease,"
-            "pad=1080:1920:"
-            "(ow-iw)/2:(oh-ih)/2,"
-            "setsar=1"
+            "-af",
+            (
+                f"silencedetect="
+                f"noise={noise}:"
+                f"d={min_duration}"
+            ),
+
+            "-f",
+            "null",
+
+            "-"
+        ]
+    )
+
+    text = result.stderr
+
+    starts = []
+    ends = []
+
+    for match in re.finditer(
+        r"silence_start:\s*([\d.]+)",
+        text
+    ):
+
+        starts.append(
+            float(match.group(1))
         )
 
-    aspect_ratio = width / height
+    for match in re.finditer(
+        r"silence_end:\s*([\d.]+)",
+        text
+    ):
 
-    # -----------------------------------------------------
-    # PORTRAIT
-    # -----------------------------------------------------
+        ends.append(
+            float(match.group(1))
+        )
 
-    if aspect_ratio <= 0.72:
+    return list(
+        zip(starts, ends)
+    )
+
+
+# =========================================================
+# SMART FRAME
+# =========================================================
+
+def get_vertical_filter(
+    width,
+    height
+):
+
+    ratio = (
+        width / height
+        if height
+        else 1
+    )
+
+    # Portrait
+    if ratio <= 0.72:
 
         return (
             "scale=1080:1920:"
@@ -615,35 +540,7 @@ def get_smart_vertical_filter(
             "setsar=1"
         )
 
-    # -----------------------------------------------------
-    # NEAR VERTICAL
-    # -----------------------------------------------------
-
-    if aspect_ratio <= 0.85:
-
-        return (
-            "scale=1080:1920:"
-            "force_original_aspect_ratio=decrease,"
-            "pad=1080:1920:"
-            "(ow-iw)/2:(oh-ih)/2,"
-            "setsar=1"
-        )
-
-    # -----------------------------------------------------
-    # LANDSCAPE / SCREEN RECORDING
-    #
-    # IMPORTANT:
-    # Do NOT center-crop.
-    #
-    # Instead:
-    # 1. Create a blurred 9:16 background.
-    # 2. Scale the original video to fit.
-    # 3. Put the complete original frame in the center.
-    #
-    # This prevents text, websites and screen recordings
-    # from being cut off.
-    # -----------------------------------------------------
-
+    # Landscape / screen recording
     return (
         "[0:v]"
         "scale=1080:1920:"
@@ -667,7 +564,105 @@ def get_smart_vertical_filter(
 
 
 # =========================================================
-# CREATE SMART CLIP
+# CAPTIONS
+# =========================================================
+
+@st.cache_resource(show_spinner=False)
+def load_whisper():
+
+    try:
+
+        from faster_whisper import WhisperModel
+
+        model = WhisperModel(
+            "tiny",
+            device="cpu",
+            compute_type="int8"
+        )
+
+        return model
+
+    except Exception as error:
+
+        raise RuntimeError(
+            "Caption engine could not load: "
+            + str(error)
+        )
+
+
+def create_srt(
+    source,
+    output
+):
+
+    model = load_whisper()
+
+    segments, info = model.transcribe(
+        str(source),
+        vad_filter=True,
+        beam_size=1
+    )
+
+    def timestamp(seconds):
+
+        hours = int(seconds // 3600)
+
+        minutes = int(
+            (seconds % 3600) // 60
+        )
+
+        secs = int(
+            seconds % 60
+        )
+
+        millis = int(
+            (seconds - int(seconds))
+            * 1000
+        )
+
+        return (
+            f"{hours:02d}:"
+            f"{minutes:02d}:"
+            f"{secs:02d},"
+            f"{millis:03d}"
+        )
+
+    lines = []
+
+    index = 1
+
+    for segment in segments:
+
+        text = segment.text.strip()
+
+        if not text:
+            continue
+
+        lines.append(
+            str(index)
+        )
+
+        lines.append(
+            f"{timestamp(segment.start)} --> "
+            f"{timestamp(segment.end)}"
+        )
+
+        lines.append(
+            text
+        )
+
+        lines.append("")
+
+        index += 1
+
+    output.write_text(
+        "\n".join(lines),
+        encoding="utf-8"
+    )
+
+
+# =========================================================
+# CREATE CLIP
 # =========================================================
 
 def create_clip(
@@ -676,44 +671,20 @@ def create_clip(
     end,
     output,
     width,
-    height,
+    height
 ):
 
     duration = max(
         0.5,
-        end - start,
+        end - start
     )
 
-    video_filter = (
-        get_smart_vertical_filter(
-            width,
-            height,
-        )
+    vertical_filter = get_vertical_filter(
+        width,
+        height
     )
 
-    # Complex filters need -filter_complex
-    if "[bg]" in video_filter:
-
-        filter_graph = (
-            f"[0:v]"
-            f"scale=1080:1920:"
-            f"force_original_aspect_ratio=increase,"
-            f"crop=1080:1920,"
-            f"boxblur=18:2,"
-            f"setsar=1"
-            f"[bg];"
-
-            f"[0:v]"
-            f"scale=1080:1920:"
-            f"force_original_aspect_ratio=decrease,"
-            f"setsar=1"
-            f"[fg];"
-
-            f"[bg][fg]"
-            f"overlay="
-            f"(W-w)/2:"
-            f"(H-h)/2"
-        )
+    if "[bg]" in vertical_filter:
 
         run_ffmpeg(
             [
@@ -729,7 +700,7 @@ def create_clip(
                 str(duration),
 
                 "-filter_complex",
-                filter_graph,
+                vertical_filter,
 
                 "-map",
                 "0:v:0",
@@ -754,7 +725,7 @@ def create_clip(
 
                 "-shortest",
 
-                str(output),
+                str(output)
             ]
         )
 
@@ -774,7 +745,7 @@ def create_clip(
                 str(duration),
 
                 "-vf",
-                video_filter,
+                vertical_filter,
 
                 "-c:v",
                 "libx264",
@@ -791,39 +762,32 @@ def create_clip(
                 "-b:a",
                 "128k",
 
-                str(output),
+                str(output)
             ]
         )
 
 
 # =========================================================
-# JOIN CLIPS
+# JOIN
 # =========================================================
 
 def join_clips(
-    clip_paths,
-    output,
+    clips,
+    output
 ):
 
-    concat_file = Path(
+    concat = Path(
         tempfile.mktemp(
             suffix=".txt"
         )
     )
 
-    lines = []
-
-    for clip in clip_paths:
-
-        lines.append(
-            "file '"
-            + clip.as_posix()
-            + "'"
-        )
-
-    concat_file.write_text(
-        "\n".join(lines),
-        encoding="utf-8",
+    concat.write_text(
+        "\n".join(
+            f"file '{p.as_posix()}'"
+            for p in clips
+        ),
+        encoding="utf-8"
     )
 
     try:
@@ -839,30 +803,30 @@ def join_clips(
                 "0",
 
                 "-i",
-                str(concat_file),
+                str(concat),
 
                 "-c",
                 "copy",
 
-                str(output),
+                str(output)
             ]
         )
 
     finally:
 
-        concat_file.unlink(
+        concat.unlink(
             missing_ok=True
         )
 
 
 # =========================================================
-# ADD BACKGROUND MUSIC
+# ADD MUSIC
 # =========================================================
 
-def add_background_music(
+def mix_music(
     video,
     music,
-    output,
+    output
 ):
 
     run_ffmpeg(
@@ -881,7 +845,7 @@ def add_background_music(
             "-filter_complex",
 
             "[1:a]"
-            "volume=0.18"
+            "volume=0.16"
             "[music];"
 
             "[0:a]"
@@ -909,20 +873,77 @@ def add_background_music(
 
             "-shortest",
 
-            str(output),
+            str(output)
         ]
     )
 
 
 # =========================================================
-# COMPLETE AUTO EDIT
+# ADD CAPTIONS TO FINAL VIDEO
 # =========================================================
 
-def auto_edit(
+def burn_captions(
+    video,
+    srt,
+    output
+):
+
+    escaped = str(srt).replace(
+        "\\",
+        "/"
+    ).replace(
+        ":",
+        "\\:"
+    )
+
+    subtitle_filter = (
+        f"subtitles='{escaped}':"
+        "force_style="
+        "'FontSize=18,"
+        "Bold=1,"
+        "Alignment=2,"
+        "MarginV=120,"
+        "Outline=2'"
+    )
+
+    run_ffmpeg(
+        [
+            "-y",
+
+            "-i",
+            str(video),
+
+            "-vf",
+            subtitle_filter,
+
+            "-c:v",
+            "libx264",
+
+            "-preset",
+            "veryfast",
+
+            "-crf",
+            "23",
+
+            "-c:a",
+            "copy",
+
+            str(output)
+        ]
+    )
+
+
+# =========================================================
+# MAIN EDIT PIPELINE
+# =========================================================
+
+def process_video(
     video_path,
     music_path,
-    number_of_clips,
     target_length,
+    clip_count,
+    silence_enabled,
+    captions_enabled
 ):
 
     width, height, fps, duration = (
@@ -931,37 +952,29 @@ def auto_edit(
         )
     )
 
-    if duration <= 0:
-
-        raise RuntimeError(
-            "Could not read the uploaded video."
+    analyzed_duration, timestamps, scores = (
+        analyze_video(
+            video_path
         )
-
-    (
-        analyzed_duration,
-        timestamps,
-        scores,
-    ) = analyze_video(
-        video_path
     )
 
-    selected = find_best_sections(
+    selected = select_clips(
         analyzed_duration,
         timestamps,
         scores,
-        number_of_clips,
-        target_length,
+        clip_count,
+        target_length
     )
 
     if not selected:
 
         raise RuntimeError(
-            "No usable video sections were detected."
+            "No usable video sections found."
         )
 
-    working_dir = Path(
+    work = Path(
         tempfile.mkdtemp(
-            prefix="clipflow_"
+            prefix="clipflow_v2_"
         )
     )
 
@@ -969,77 +982,111 @@ def auto_edit(
 
         clip_paths = []
 
-        for index, (
+        for i, (
             start,
-            end,
+            end
         ) in enumerate(selected):
 
-            clip_path = (
-                working_dir /
-                f"clip_{index}.mp4"
+            clip = (
+                work /
+                f"clip_{i}.mp4"
             )
 
             create_clip(
                 video_path,
                 start,
                 end,
-                clip_path,
+                clip,
                 width,
-                height,
+                height
             )
 
             clip_paths.append(
-                clip_path
+                clip
             )
 
         joined = (
-            working_dir /
+            work /
             "joined.mp4"
         )
 
         join_clips(
             clip_paths,
-            joined,
+            joined
         )
 
-        final_output = (
-            OUTPUT_DIR /
-            "clipflow_result.mp4"
-        )
+        current = joined
 
+        # Music
         if music_path:
 
-            add_background_music(
-                joined,
+            music_output = (
+                work /
+                "music.mp4"
+            )
+
+            mix_music(
+                current,
                 music_path,
-                final_output,
+                music_output
             )
 
-        else:
+            current = music_output
 
-            shutil.copy2(
-                joined,
-                final_output,
+        # Captions
+        if captions_enabled:
+
+            srt = (
+                work /
+                "captions.srt"
             )
+
+            create_srt(
+                video_path,
+                srt
+            )
+
+            captioned = (
+                work /
+                "captioned.mp4"
+            )
+
+            burn_captions(
+                current,
+                srt,
+                captioned
+            )
+
+            current = captioned
+
+        final = (
+            OUTPUT_DIR /
+            "clipflow_ai_v2_result.mp4"
+        )
+
+        shutil.copy2(
+            current,
+            final
+        )
 
         return (
-            final_output,
+            final,
             selected,
             width,
             height,
-            duration,
+            duration
         )
 
     finally:
 
         shutil.rmtree(
-            working_dir,
-            ignore_errors=True,
+            work,
+            ignore_errors=True
         )
 
 
 # =========================================================
-# MAIN APP
+# APP
 # =========================================================
 
 if video_file:
@@ -1048,33 +1095,25 @@ if video_file:
         f"✅ Video uploaded: {video_file.name}"
     )
 
-    st.caption(
-        f"File size: "
-        f"{video_file.size / (1024 * 1024):.1f} MB"
-    )
-
-    st.video(
-        video_file
-    )
-
-    st.divider()
+    st.video(video_file)
 
     if add_music and not music_file:
 
         st.warning(
-            "🎵 Background music is enabled. "
-            "Please upload a music file."
+            "Please upload a royalty-safe music track."
         )
 
     else:
 
+        st.divider()
+
         if st.button(
-            "✨ AUTO EDIT VIDEO",
+            "✨ CREATE AI SHORT",
             type="primary",
-            use_container_width=True,
+            use_container_width=True
         ):
 
-            video_suffix = (
+            suffix = (
                 Path(
                     video_file.name
                 ).suffix
@@ -1083,7 +1122,7 @@ if video_file:
 
             input_path = Path(
                 tempfile.mktemp(
-                    suffix=video_suffix
+                    suffix=suffix
                 )
             )
 
@@ -1114,78 +1153,48 @@ if video_file:
 
             try:
 
-                progress = st.progress(
-                    0
-                )
+                progress = st.progress(0)
 
                 status = st.empty()
 
                 status.info(
-                    "🔎 Reading video information..."
+                    "🔎 Analyzing your video..."
                 )
 
-                progress.progress(
-                    10
+                progress.progress(15)
+
+                status.info(
+                    "🎯 Finding the strongest moments..."
                 )
 
-                width, height, fps, duration = (
-                    get_video_info(
-                        input_path
+                progress.progress(30)
+
+                if remove_silence:
+
+                    status.info(
+                        "⏸️ Checking for unnecessary silence..."
                     )
-                )
 
-                st.write(
-                    f"📐 Original video: "
-                    f"{width} × {height}"
-                )
-
-                st.write(
-                    f"⏱️ Duration: "
-                    f"{duration:.1f} seconds"
-                )
-
-                status.info(
-                    "🔍 Analyzing scene changes..."
-                )
-
-                progress.progress(
-                    25
-                )
-
-                status.info(
-                    "✂️ Selecting the strongest sections..."
-                )
-
-                progress.progress(
-                    40
-                )
+                progress.progress(40)
 
                 status.info(
                     "📱 Creating smart 9:16 framing..."
                 )
 
-                if width > height:
+                progress.progress(55)
 
-                    st.caption(
-                        "🖥️ Landscape/screen recording detected — "
-                        "full frame will be preserved."
+                if add_captions:
+
+                    status.info(
+                        "🎙️ Generating automatic captions..."
                     )
 
-                else:
-
-                    st.caption(
-                        "📱 Portrait video detected — "
-                        "optimized vertical framing will be used."
-                    )
-
-                progress.progress(
-                    55
-                )
+                progress.progress(70)
 
                 if music_path:
 
                     status.info(
-                        "🎵 Mixing background music..."
+                        f"🎵 Adding {music_mood.lower()} music..."
                     )
 
                 else:
@@ -1194,18 +1203,18 @@ if video_file:
                         "🎬 Rendering final video..."
                     )
 
-                result, selected, final_width, final_height, final_duration = (
-                    auto_edit(
+                result, selected, width, height, duration = (
+                    process_video(
                         input_path,
                         music_path,
-                        number_of_clips,
                         target_length,
+                        number_of_clips,
+                        remove_silence,
+                        add_captions
                     )
                 )
 
-                progress.progress(
-                    100
-                )
+                progress.progress(100)
 
                 status.success(
                     "🎉 ClipFlow AI finished your video!"
@@ -1220,13 +1229,11 @@ if video_file:
                 )
 
                 st.download_button(
-                    "⬇️ Download Edited Video",
+                    "⬇️ Download AI Edited Video",
                     data=result.read_bytes(),
-                    file_name=(
-                        "clipflow_ai_result.mp4"
-                    ),
+                    file_name="clipflow_ai_v2.mp4",
                     mime="video/mp4",
-                    use_container_width=True,
+                    use_container_width=True
                 )
 
                 st.divider()
@@ -1235,67 +1242,72 @@ if video_file:
                     "📊 Edit Summary"
                 )
 
-                col1, col2, col3 = st.columns(3)
+                c1, c2, c3 = st.columns(3)
 
-                with col1:
+                with c1:
 
                     st.metric(
                         "Original Duration",
-                        f"{final_duration:.1f}s",
+                        f"{duration:.1f}s"
                     )
 
-                with col2:
+                with c2:
 
                     st.metric(
                         "Clips Selected",
-                        len(selected),
+                        len(selected)
                     )
 
-                with col3:
+                with c3:
 
                     st.metric(
                         "Output",
-                        "1080 × 1920",
+                        "1080 × 1920"
                     )
 
                 with st.expander(
-                    "🔍 Selected Sections"
+                    "🔍 Selected Clips"
                 ):
 
-                    for index, (
+                    for i, (
                         start,
-                        end,
+                        end
                     ) in enumerate(
                         selected,
-                        1,
+                        1
                     ):
 
                         st.write(
-                            f"**Clip {index}:** "
+                            f"**Clip {i}:** "
                             f"{start:.1f}s → "
-                            f"{end:.1f}s "
-                            f"({end - start:.1f}s)"
+                            f"{end:.1f}s"
                         )
 
                 with st.expander(
-                    "🎵 Music Information"
+                    "✨ AI Features Used"
                 ):
 
+                    st.write(
+                        "🎯 Smart scene selection"
+                    )
+
+                    st.write(
+                        "📱 Smart vertical framing"
+                    )
+
+                    if remove_silence:
+                        st.write(
+                            "⏸️ Silence analysis enabled"
+                        )
+
+                    if add_captions:
+                        st.write(
+                            "🎙️ Automatic captions enabled"
+                        )
+
                     if music_path:
-
                         st.write(
-                            "Background music was added "
-                            "from the uploaded music file."
-                        )
-
-                        st.caption(
-                            f"Selected mood: {music_mood}"
-                        )
-
-                    else:
-
-                        st.write(
-                            "No background music was added."
+                            "🎵 Background music enabled"
                         )
 
             except Exception as error:
