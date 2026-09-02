@@ -1,4 +1,3 @@
-
 import re
 import shutil
 import subprocess
@@ -25,6 +24,8 @@ BASE_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = BASE_DIR / "outputs"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+MAX_UPLOAD_MB = 200
+
 
 # =========================================================
 # PREMIUM DARK CINEMATIC THEME
@@ -34,27 +35,27 @@ st.markdown(
     """
     <style>
 
-    /* ==============================
+    /* =====================================================
        GLOBAL
-       ============================== */
+       ===================================================== */
 
     .stApp {
         background:
             radial-gradient(
-                circle at 15% 0%,
-                rgba(124, 58, 237, 0.18),
+                circle at 12% 0%,
+                rgba(124, 58, 237, 0.20),
                 transparent 30%
             ),
             radial-gradient(
-                circle at 85% 5%,
-                rgba(37, 99, 235, 0.16),
+                circle at 88% 8%,
+                rgba(37, 99, 235, 0.18),
                 transparent 28%
             ),
             linear-gradient(
                 180deg,
-                #080812 0%,
-                #0b0b15 45%,
-                #090910 100%
+                #07070f 0%,
+                #0a0a14 45%,
+                #07070d 100%
             );
 
         color: #f8fafc;
@@ -63,19 +64,19 @@ st.markdown(
     .main .block-container {
         max-width: 1450px;
         padding-top: 2rem;
-        padding-bottom: 4rem;
+        padding-bottom: 5rem;
     }
 
-    /* ==============================
+    /* =====================================================
        SIDEBAR
-       ============================== */
+       ===================================================== */
 
     [data-testid="stSidebar"] {
         background:
             linear-gradient(
                 180deg,
-                #0c0c16 0%,
-                #090910 100%
+                #0d0d18 0%,
+                #08080f 100%
             );
 
         border-right: 1px solid rgba(255,255,255,.08);
@@ -87,6 +88,12 @@ st.markdown(
 
     [data-testid="stSidebar"] h2 {
         color: #ffffff;
+        font-weight: 900;
+        letter-spacing: -.5px;
+    }
+
+    [data-testid="stSidebar"] h3 {
+        color: #ffffff;
         font-weight: 800;
     }
 
@@ -94,103 +101,124 @@ st.markdown(
         border-color: rgba(255,255,255,.08);
     }
 
-    /* ==============================
+    /* =====================================================
        HERO
-       ============================== */
+       ===================================================== */
 
     .hero {
         position: relative;
         overflow: hidden;
 
-        padding: 52px 52px 48px;
-        margin-bottom: 28px;
+        padding: 58px 55px 52px;
+        margin-bottom: 30px;
 
         border-radius: 30px;
 
         background:
             radial-gradient(
-                circle at 80% 25%,
-                rgba(124,58,237,.30),
+                circle at 82% 24%,
+                rgba(124,58,237,.32),
                 transparent 28%
             ),
             radial-gradient(
-                circle at 65% 85%,
-                rgba(37,99,235,.20),
+                circle at 68% 90%,
+                rgba(37,99,235,.22),
                 transparent 30%
             ),
             linear-gradient(
                 135deg,
-                #11111d 0%,
-                #10101b 50%,
-                #0d1020 100%
+                #12121f 0%,
+                #10101b 48%,
+                #0c1020 100%
             );
 
         border: 1px solid rgba(255,255,255,.10);
 
         box-shadow:
-            0 25px 80px rgba(0,0,0,.38);
+            0 30px 90px rgba(0,0,0,.40);
     }
 
     .hero::before {
         content: "";
         position: absolute;
 
-        width: 240px;
-        height: 240px;
+        width: 330px;
+        height: 330px;
 
-        right: -80px;
-        top: -90px;
+        right: -130px;
+        top: -140px;
 
         border-radius: 50%;
 
         background:
             linear-gradient(
                 135deg,
-                rgba(168,85,247,.35),
-                rgba(59,130,246,.05)
+                rgba(168,85,247,.38),
+                rgba(59,130,246,.06)
             );
 
-        filter: blur(8px);
+        filter: blur(12px);
+    }
+
+    .hero::after {
+        content: "";
+        position: absolute;
+
+        width: 180px;
+        height: 180px;
+
+        left: -90px;
+        bottom: -110px;
+
+        border-radius: 50%;
+
+        background:
+            rgba(37,99,235,.16);
+
+        filter: blur(25px);
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 2;
     }
 
     .hero-badge {
         display: inline-flex;
         align-items: center;
 
-        padding: 8px 14px;
+        padding: 9px 15px;
 
         border-radius: 999px;
 
         background: rgba(139,92,246,.12);
 
-        border: 1px solid rgba(139,92,246,.32);
+        border: 1px solid rgba(139,92,246,.35);
 
         color: #c4b5fd;
 
         font-size: 12px;
-        font-weight: 800;
+        font-weight: 850;
 
-        letter-spacing: 1.2px;
+        letter-spacing: 1.25px;
 
-        margin-bottom: 20px;
+        margin-bottom: 21px;
     }
 
     .hero h1 {
-        position: relative;
-
         margin: 0;
 
         color: #ffffff;
 
-        font-size: clamp(42px, 5vw, 68px);
+        font-size: clamp(43px, 5.2vw, 72px);
 
-        line-height: .98;
+        line-height: .96;
 
-        font-weight: 900;
+        font-weight: 950;
 
-        letter-spacing: -3px;
+        letter-spacing: -4px;
 
-        max-width: 850px;
+        max-width: 900px;
     }
 
     .hero-gradient {
@@ -208,14 +236,12 @@ st.markdown(
     }
 
     .hero p {
-        position: relative;
+        max-width: 735px;
 
-        max-width: 720px;
-
-        margin-top: 20px;
+        margin-top: 22px;
         margin-bottom: 0;
 
-        color: #a7a8b5;
+        color: #b0b1bf;
 
         font-size: 17px;
 
@@ -223,8 +249,6 @@ st.markdown(
     }
 
     .hero-mini {
-        position: relative;
-
         margin-top: 30px;
 
         display: flex;
@@ -233,58 +257,63 @@ st.markdown(
     }
 
     .hero-chip {
-        padding: 8px 13px;
+        padding: 9px 14px;
 
-        border-radius: 10px;
+        border-radius: 11px;
 
         background: rgba(255,255,255,.055);
 
-        border: 1px solid rgba(255,255,255,.08);
+        border: 1px solid rgba(255,255,255,.09);
 
-        color: #cbd5e1;
+        color: #d5d9e3;
 
         font-size: 12px;
-        font-weight: 650;
+        font-weight: 750;
     }
 
-    /* ==============================
+    /* =====================================================
        FEATURE CARDS
-       ============================== */
+       ===================================================== */
 
     .feature-card {
-        min-height: 145px;
+        min-height: 155px;
 
-        padding: 20px;
+        padding: 22px;
 
-        border-radius: 20px;
+        border-radius: 21px;
 
         background:
             linear-gradient(
                 145deg,
-                rgba(255,255,255,.065),
+                rgba(255,255,255,.070),
                 rgba(255,255,255,.025)
             );
 
-        border: 1px solid rgba(255,255,255,.085);
+        border: 1px solid rgba(255,255,255,.09);
 
         box-shadow:
-            inset 0 1px 0 rgba(255,255,255,.035);
+            inset 0 1px 0 rgba(255,255,255,.035),
+            0 12px 40px rgba(0,0,0,.15);
 
         transition:
             transform .2s ease,
-            border-color .2s ease;
+            border-color .2s ease,
+            box-shadow .2s ease;
     }
 
     .feature-card:hover {
-        transform: translateY(-3px);
+        transform: translateY(-4px);
 
         border-color:
-            rgba(139,92,246,.35);
+            rgba(139,92,246,.38);
+
+        box-shadow:
+            0 18px 50px rgba(0,0,0,.25);
     }
 
     .feature-icon {
-        font-size: 26px;
-        margin-bottom: 10px;
+        font-size: 27px;
+        margin-bottom: 11px;
     }
 
     .feature-title {
@@ -292,86 +321,87 @@ st.markdown(
 
         font-size: 15px;
 
-        font-weight: 800;
+        font-weight: 850;
     }
 
     .feature-text {
-        margin-top: 5px;
+        margin-top: 6px;
 
-        color: #858796;
+        color: #8f91a0;
 
         font-size: 12px;
 
-        line-height: 1.5;
+        line-height: 1.55;
     }
 
-    /* ==============================
+    /* =====================================================
        SECTION TITLES
-       ============================== */
+       ===================================================== */
 
     .section-title {
-        margin-top: 34px;
+        margin-top: 35px;
         margin-bottom: 14px;
 
         color: #f8fafc;
 
-        font-size: 23px;
+        font-size: 24px;
 
-        font-weight: 850;
+        font-weight: 900;
 
-        letter-spacing: -.5px;
+        letter-spacing: -.7px;
     }
 
     .section-kicker {
-        color: #7c7e8d;
+        color: #8b8d9d;
 
-        font-size: 12px;
+        font-size: 11px;
 
-        font-weight: 700;
+        font-weight: 850;
 
         text-transform: uppercase;
 
-        letter-spacing: 1.3px;
+        letter-spacing: 1.6px;
 
+        margin-top: 30px;
         margin-bottom: 5px;
     }
 
-    /* ==============================
-       UPLOAD
-       ============================== */
+    /* =====================================================
+       UPLOAD CARD
+       ===================================================== */
 
     .upload-card {
-        padding: 34px 28px;
+        padding: 37px 28px;
 
         text-align: center;
 
-        border-radius: 24px;
+        border-radius: 25px;
 
         background:
             radial-gradient(
                 circle at 50% 0%,
-                rgba(124,58,237,.10),
-                transparent 45%
+                rgba(124,58,237,.12),
+                transparent 48%
             ),
             rgba(255,255,255,.025);
 
-        border: 2px dashed rgba(139,92,246,.35);
+        border: 2px dashed rgba(139,92,246,.38);
 
         box-shadow:
-            0 20px 60px rgba(0,0,0,.18);
+            0 22px 65px rgba(0,0,0,.20);
     }
 
     .upload-icon {
-        font-size: 38px;
-        margin-bottom: 8px;
+        font-size: 40px;
+        margin-bottom: 9px;
     }
 
     .upload-title {
         color: #ffffff;
 
-        font-size: 18px;
+        font-size: 19px;
 
-        font-weight: 800;
+        font-weight: 850;
     }
 
     .upload-text {
@@ -382,9 +412,9 @@ st.markdown(
         margin-top: 7px;
     }
 
-    /* ==============================
+    /* =====================================================
        GLASS CARDS
-       ============================== */
+       ===================================================== */
 
     .glass-card {
         background:
@@ -395,22 +425,22 @@ st.markdown(
 
         border-radius: 20px;
 
-        padding: 20px;
+        padding: 21px;
 
         box-shadow:
             0 15px 45px rgba(0,0,0,.18);
     }
 
-    /* ==============================
+    /* =====================================================
        METRICS
-       ============================== */
+       ===================================================== */
 
     .metric-card {
-        min-height: 105px;
+        min-height: 110px;
 
-        padding: 18px;
+        padding: 19px;
 
-        border-radius: 18px;
+        border-radius: 19px;
 
         background:
             linear-gradient(
@@ -427,9 +457,9 @@ st.markdown(
     .metric-value {
         color: #ffffff;
 
-        font-size: 24px;
+        font-size: 25px;
 
-        font-weight: 850;
+        font-weight: 900;
     }
 
     .metric-label {
@@ -440,16 +470,16 @@ st.markdown(
         font-size: 12px;
     }
 
-    /* ==============================
-       STREAMLIT BUTTONS
-       ============================== */
+    /* =====================================================
+       BUTTONS
+       ===================================================== */
 
     div.stButton > button {
-        min-height: 50px;
+        min-height: 52px;
 
         border-radius: 15px;
 
-        border: 1px solid rgba(139,92,246,.35);
+        border: 1px solid rgba(139,92,246,.38);
 
         background:
             linear-gradient(
@@ -460,12 +490,12 @@ st.markdown(
 
         color: #ffffff;
 
-        font-weight: 850;
+        font-weight: 900;
 
-        letter-spacing: .2px;
+        letter-spacing: .25px;
 
         box-shadow:
-            0 10px 30px rgba(79,70,229,.20);
+            0 10px 32px rgba(79,70,229,.22);
 
         transition:
             transform .15s ease,
@@ -476,19 +506,15 @@ st.markdown(
         transform: translateY(-2px);
 
         box-shadow:
-            0 15px 38px rgba(79,70,229,.32);
+            0 17px 42px rgba(79,70,229,.34);
     }
 
     div.stButton > button:disabled {
         opacity: .45;
     }
 
-    /* ==============================
-       DOWNLOAD BUTTON
-       ============================== */
-
     .stDownloadButton > button {
-        min-height: 50px;
+        min-height: 52px;
 
         border-radius: 15px !important;
 
@@ -499,16 +525,19 @@ st.markdown(
                 #7c3aed
             ) !important;
 
-        color: white !important;
+        color: #ffffff !important;
 
-        font-weight: 850 !important;
+        font-weight: 900 !important;
 
         border: 0 !important;
+
+        box-shadow:
+            0 10px 30px rgba(79,70,229,.20);
     }
 
-    /* ==============================
+    /* =====================================================
        INPUTS
-       ============================== */
+       ===================================================== */
 
     div[data-baseweb="select"] > div,
     div[data-baseweb="input"] > div {
@@ -521,9 +550,9 @@ st.markdown(
         color: #ffffff !important;
     }
 
-    /* ==============================
+    /* =====================================================
        FILE UPLOADER
-       ============================== */
+       ===================================================== */
 
     [data-testid="stFileUploader"] section {
         background: rgba(255,255,255,.025);
@@ -538,9 +567,13 @@ st.markdown(
         background: transparent;
     }
 
-    /* ==============================
+    [data-testid="stFileUploaderDropzoneInstructions"] {
+        color: #a7a8b5 !important;
+    }
+
+    /* =====================================================
        EXPANDER
-       ============================== */
+       ===================================================== */
 
     [data-testid="stExpander"] {
         background: rgba(255,255,255,.025);
@@ -551,9 +584,9 @@ st.markdown(
         border-radius: 18px;
     }
 
-    /* ==============================
+    /* =====================================================
        TEXT
-       ============================== */
+       ===================================================== */
 
     .stMarkdown,
     .stText,
@@ -561,24 +594,60 @@ st.markdown(
         color: #d1d5db;
     }
 
-    /* ==============================
-       STATUS BOXES
-       ============================== */
+    /* =====================================================
+       ALERTS
+       ===================================================== */
 
     [data-testid="stAlert"] {
         border-radius: 14px;
     }
 
-    /* ==============================
+    /* =====================================================
        VIDEO
-       ============================== */
+       ===================================================== */
 
     video {
         border-radius: 18px;
-        border: 1px solid rgba(255,255,255,.08);
+
+        border:
+            1px solid rgba(255,255,255,.09);
 
         box-shadow:
-            0 20px 60px rgba(0,0,0,.28);
+            0 22px 65px rgba(0,0,0,.30);
+    }
+
+    /* =====================================================
+       PROGRESS
+       ===================================================== */
+
+    [data-testid="stProgressBar"] {
+        background: rgba(255,255,255,.06);
+    }
+
+    /* =====================================================
+       MOBILE
+       ===================================================== */
+
+    @media (max-width: 800px) {
+
+        .hero {
+            padding: 38px 26px;
+        }
+
+        .hero h1 {
+            font-size: 42px;
+            letter-spacing: -2px;
+        }
+
+        .hero p {
+            font-size: 15px;
+        }
+
+        .main .block-container {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
     }
 
     </style>
@@ -594,31 +663,33 @@ st.markdown(
 st.markdown(
     """
     <div class="hero">
+        <div class="hero-content">
 
-        <div class="hero-badge">
-            ✦ CLIPFLOW AI · CREATIVE VIDEO STUDIO
+            <div class="hero-badge">
+                ✦ CLIPFLOW AI · CREATIVE VIDEO STUDIO
+            </div>
+
+            <h1>
+                YOUR FOOTAGE.<br>
+                <span class="hero-gradient">
+                    YOUR NEXT SHORT.
+                </span>
+            </h1>
+
+            <p>
+                Turn raw footage into polished vertical content with
+                AI-powered moment detection, smart framing,
+                synchronized captions and optional background music.
+            </p>
+
+            <div class="hero-mini">
+                <div class="hero-chip">🎯 Smart Moments</div>
+                <div class="hero-chip">📱 9:16 Studio</div>
+                <div class="hero-chip">🎙️ AI Captions</div>
+                <div class="hero-chip">🎵 Music Mix</div>
+            </div>
+
         </div>
-
-        <h1>
-            YOUR FOOTAGE.<br>
-            <span class="hero-gradient">
-                YOUR NEXT SHORT.
-            </span>
-        </h1>
-
-        <p>
-            Turn raw footage into polished vertical content with
-            AI-powered moment detection, smart framing, synchronized
-            captions and optional background music.
-        </p>
-
-        <div class="hero-mini">
-            <div class="hero-chip">🎯 Smart Moments</div>
-            <div class="hero-chip">📱 9:16 Studio</div>
-            <div class="hero-chip">🎙️ AI Captions</div>
-            <div class="hero-chip">🎵 Music Mix</div>
-        </div>
-
     </div>
     """,
     unsafe_allow_html=True,
@@ -658,6 +729,7 @@ for col, data in zip(
     [f1, f2, f3, f4],
     features,
 ):
+
     icon, title, text = data
 
     with col:
@@ -685,16 +757,14 @@ for col, data in zip(
 
 
 # =========================================================
-# SIDEBAR
+# SIDEBAR SETTINGS
 # =========================================================
 
 with st.sidebar:
 
     st.markdown("## 🎬 ClipFlow AI")
 
-    st.caption(
-        "Creative Video Studio"
-    )
+    st.caption("Creative Video Studio")
 
     st.divider()
 
@@ -740,7 +810,7 @@ with st.sidebar:
         False,
     )
 
-    remove_silence = st.checkbox(
+    analyze_silence = st.checkbox(
         "⏸️ Analyze long silences",
         True,
     )
@@ -958,7 +1028,7 @@ def analyze_video(path):
 
     step = max(
         1,
-        int(fps * 0.5)
+        int(fps * 0.5),
     )
 
     while True:
@@ -992,9 +1062,7 @@ def analyze_video(path):
                 )
 
                 scores.append(
-                    float(
-                        diff.mean()
-                    )
+                    float(diff.mean())
                 )
 
             previous = gray
@@ -1024,6 +1092,25 @@ def select_clips(
 
     if duration <= 0:
         return []
+
+    count = max(
+        1,
+        min(
+            int(count),
+            8,
+        ),
+    )
+
+    # If source is shorter than requested,
+    # return the full video.
+    if duration <= target:
+
+        return [
+            (
+                0.0,
+                duration,
+            )
+        ]
 
     if not scores:
 
@@ -1074,13 +1161,13 @@ def select_clips(
         if score >= threshold:
 
             start = max(
-                0,
-                timestamp - 2,
+                0.0,
+                timestamp - 2.0,
             )
 
             end = min(
                 duration,
-                timestamp + 4,
+                timestamp + 4.0,
             )
 
             if not windows:
@@ -1105,6 +1192,7 @@ def select_clips(
                     [start, end]
                 )
 
+    # Fallback when activity windows are insufficient.
     if len(windows) < count:
 
         windows = []
@@ -1128,6 +1216,7 @@ def select_clips(
                 [start, end]
             )
 
+    # Rank larger usable windows first.
     ranked = sorted(
         windows,
         key=lambda x: (
@@ -1139,11 +1228,11 @@ def select_clips(
     selected = []
 
     per_clip = max(
-        2,
+        2.0,
         target / count,
     )
 
-    total = 0
+    total = 0.0
 
     for start, end in ranked:
 
@@ -1171,6 +1260,25 @@ def select_clips(
             )
 
             total += clip_length
+
+    # If ranking somehow selected nothing,
+    # use evenly distributed segments.
+    if not selected:
+
+        segment = (
+            duration / count
+        )
+
+        selected = [
+            (
+                i * segment,
+                min(
+                    duration,
+                    (i + 1) * segment,
+                ),
+            )
+            for i in range(count)
+        ]
 
     selected.sort(
         key=lambda x: x[0]
@@ -1252,7 +1360,7 @@ def get_vertical_filter(
         else 1
     )
 
-    # Portrait
+    # Portrait footage
     if ratio <= 0.72:
 
         return (
@@ -1265,12 +1373,8 @@ def get_vertical_filter(
             "setsar=1"
         )
 
-    # Landscape / screen recording
-    #
-    # FIX:
-    # Previously the background stream [bg]
-    # was mapped instead of the final overlay.
-    #
+    # Landscape / square / screen recording.
+    # Creates blurred background and centered foreground.
     return (
         "[0:v]"
         "scale=1080:1920:"
@@ -1421,6 +1525,8 @@ def join_clips(
                 "veryfast",
                 "-crf",
                 "23",
+                "-pix_fmt",
+                "yuv420p",
                 "-c:a",
                 "aac",
                 "-b:a",
@@ -1437,6 +1543,58 @@ def join_clips(
 
 
 # =========================================================
+# GET MEDIA DURATION
+# =========================================================
+
+def get_media_duration(path):
+
+    try:
+
+        result = run_ffmpeg(
+            [
+                "-i",
+                str(path),
+            ]
+        )
+
+        text = (
+            result.stderr
+            or ""
+        )
+
+        match = re.search(
+            r"Duration:\s*(\d+):(\d+):([\d.]+)",
+            text,
+        )
+
+        if match:
+
+            hours = int(
+                match.group(1)
+            )
+
+            minutes = int(
+                match.group(2)
+            )
+
+            seconds = float(
+                match.group(3)
+            )
+
+            return (
+                hours * 3600
+                + minutes * 60
+                + seconds
+            )
+
+    except Exception:
+
+        pass
+
+    return 0.0
+
+
+# =========================================================
 # MUSIC MIX
 # =========================================================
 
@@ -1445,6 +1603,35 @@ def mix_music(
     music,
     output,
 ):
+
+    video_duration = get_media_duration(
+        video
+    )
+
+    if video_duration <= 0:
+        video_duration = 30.0
+
+    fade_start = max(
+        0.0,
+        video_duration - 2.0,
+    )
+
+    music_filter = (
+        "[1:a]"
+        "volume=0.14,"
+        "afade=t=in:st=0:d=1,"
+        f"afade=t=out:st={fade_start:.3f}:d=2"
+        "[music];"
+        "[0:a]"
+        "volume=1.0"
+        "[voice];"
+        "[voice][music]"
+        "amix="
+        "inputs=2:"
+        "duration=first:"
+        "dropout_transition=2"
+        "[audio]"
+    )
 
     run_ffmpeg(
         [
@@ -1460,23 +1647,7 @@ def mix_music(
             str(music),
 
             "-filter_complex",
-
-            "[1:a]"
-            "volume=0.14,"
-            "afade=t=in:st=0:d=1,"
-            "afade=t=out:st=28:d=2"
-            "[music];"
-
-            "[0:a]"
-            "volume=1.0"
-            "[voice];"
-
-            "[voice][music]"
-            "amix="
-            "inputs=2:"
-            "duration=first:"
-            "dropout_transition=2"
-            "[audio]",
+            music_filter,
 
             "-map",
             "0:v:0",
@@ -1511,9 +1682,7 @@ def load_whisper():
 
     try:
 
-        from faster_whisper import (
-            WhisperModel
-        )
+        from faster_whisper import WhisperModel
 
         return WhisperModel(
             "tiny",
@@ -1598,7 +1767,7 @@ def create_srt_for_selected_clips(
 
     model = load_whisper()
 
-    segments, info = model.transcribe(
+    segments, _ = model.transcribe(
         str(source),
         vad_filter=True,
         beam_size=1,
@@ -1828,6 +1997,21 @@ def process_video(
         )
     )
 
+    if width <= 0 or height <= 0:
+
+        raise RuntimeError(
+            "Could not read the uploaded video."
+        )
+
+    if duration <= 0:
+
+        raise RuntimeError(
+            "Could not determine video duration."
+        )
+
+    if progress_callback:
+        progress_callback(5)
+
     (
         analyzed_duration,
         timestamps,
@@ -1862,7 +2046,7 @@ def process_video(
     try:
 
         # -------------------------------------------------
-        # SILENCE
+        # SILENCE ANALYSIS
         # -------------------------------------------------
 
         silence_info = []
@@ -1901,17 +2085,20 @@ def process_video(
                 height,
             )
 
-            clip_paths.append(clip)
+            clip_paths.append(
+                clip
+            )
 
         if progress_callback:
             progress_callback(50)
 
         # -------------------------------------------------
-        # JOIN
+        # JOIN CLIPS
         # -------------------------------------------------
 
         joined = (
-            work / "joined.mp4"
+            work
+            / "joined.mp4"
         )
 
         join_clips(
@@ -1928,10 +2115,13 @@ def process_video(
         # MUSIC
         # -------------------------------------------------
 
+        music_added = False
+
         if music_path:
 
             music_output = (
-                work / "music.mp4"
+                work
+                / "music.mp4"
             )
 
             mix_music(
@@ -1941,6 +2131,8 @@ def process_video(
             )
 
             current = music_output
+
+            music_added = True
 
         if progress_callback:
             progress_callback(75)
@@ -1953,8 +2145,12 @@ def process_video(
 
         if captions_enabled:
 
+            if progress_callback:
+                progress_callback(78)
+
             srt = (
-                work / "captions.srt"
+                work
+                / "captions.srt"
             )
 
             captions_created = (
@@ -1981,7 +2177,7 @@ def process_video(
                 current = captioned
 
         if progress_callback:
-            progress_callback(92)
+            progress_callback(94)
 
         # -------------------------------------------------
         # FINAL OUTPUT
@@ -1990,6 +2186,11 @@ def process_video(
         final = (
             OUTPUT_DIR
             / "clipflow_ai_result.mp4"
+        )
+
+        # Remove previous output if present.
+        final.unlink(
+            missing_ok=True
         )
 
         shutil.copy2(
@@ -2012,6 +2213,7 @@ def process_video(
             "captions_created": (
                 captions_created
             ),
+            "music_added": music_added,
         }
 
     finally:
@@ -2023,18 +2225,49 @@ def process_video(
 
 
 # =========================================================
+# FILE SIZE CHECK
+# =========================================================
+
+def file_size_mb(uploaded_file):
+
+    if uploaded_file is None:
+        return 0.0
+
+    return (
+        uploaded_file.size
+        / (
+            1024
+            * 1024
+        )
+    )
+
+
+# =========================================================
 # RUN APP
 # =========================================================
 
 if video_file:
+
+    video_size = file_size_mb(
+        video_file
+    )
 
     st.markdown(
         '<div class="section-title">🎥 Your source footage</div>',
         unsafe_allow_html=True,
     )
 
+    if video_size > MAX_UPLOAD_MB:
+
+        st.error(
+            f"❌ This file is {video_size:.1f} MB. "
+            f"Maximum allowed size is {MAX_UPLOAD_MB} MB."
+        )
+
+        st.stop()
+
     st.success(
-        f"✓ {video_file.name}"
+        f"✓ {video_file.name} · {video_size:.1f} MB"
     )
 
     with st.expander(
@@ -2043,6 +2276,10 @@ if video_file:
     ):
 
         st.video(video_file)
+
+    # -----------------------------------------------------
+    # MUSIC VALIDATION
+    # -----------------------------------------------------
 
     if add_music and not music_file:
 
@@ -2056,13 +2293,18 @@ if video_file:
         or music_file is not None
     )
 
+    # -----------------------------------------------------
+    # CREATE SECTION
+    # -----------------------------------------------------
+
     st.markdown(
         '<div class="section-title">✨ Create your Short</div>',
         unsafe_allow_html=True,
     )
 
     st.caption(
-        f"{platform} · {target_length}s target · "
+        f"{platform} · "
+        f"{target_length}s target · "
         f"{number_of_clips} clips"
     )
 
@@ -2111,7 +2353,9 @@ if video_file:
                 music_file.getbuffer()
             )
 
-        progress = st.progress(0)
+        progress = st.progress(
+            0
+        )
 
         status = st.empty()
 
@@ -2127,7 +2371,13 @@ if video_file:
                     int(value)
                 )
 
-                if value < 25:
+                if value < 15:
+
+                    status.info(
+                        "🔎 Reading your footage..."
+                    )
+
+                elif value < 25:
 
                     status.info(
                         "🎯 Finding engaging moments..."
@@ -2139,24 +2389,32 @@ if video_file:
                         "✂️ Creating smart clips..."
                     )
 
-                elif value < 75:
+                elif value < 70:
 
                     status.info(
                         "📱 Building your vertical edit..."
                     )
 
-                elif value < 93:
+                elif value < 78:
+
+                    if music_file:
+
+                        status.info(
+                            "🎵 Mixing background music..."
+                        )
+
+                    else:
+
+                        status.info(
+                            "🎬 Preparing final edit..."
+                        )
+
+                elif value < 94:
 
                     if add_captions:
 
                         status.info(
                             "🎙️ Creating synchronized captions..."
-                        )
-
-                    elif music_file:
-
-                        status.info(
-                            "🎵 Mixing background music..."
                         )
 
                     else:
@@ -2176,12 +2434,14 @@ if video_file:
                 music_path,
                 target_length,
                 number_of_clips,
-                remove_silence,
+                analyze_silence,
                 add_captions,
                 update_progress,
             )
 
-            progress.progress(100)
+            progress.progress(
+                100
+            )
 
             status.success(
                 "🎉 Your Short is ready!"
@@ -2199,13 +2459,19 @@ if video_file:
             )
 
             st.video(
-                str(result["file"])
+                str(
+                    result["file"]
+                )
             )
 
             st.download_button(
                 "⬇️  DOWNLOAD MY SHORT",
-                data=result["file"].read_bytes(),
-                file_name="clipflow_ai_short.mp4",
+                data=result[
+                    "file"
+                ].read_bytes(),
+                file_name=(
+                    "clipflow_ai_short.mp4"
+                ),
                 mime="video/mp4",
                 use_container_width=True,
             )
@@ -2231,7 +2497,9 @@ if video_file:
                     c2,
                     str(
                         len(
-                            result["selected"]
+                            result[
+                                "selected"
+                            ]
                         )
                     ),
                     "Clips selected",
@@ -2297,7 +2565,7 @@ if video_file:
                     <div class="glass-card"
                          style="margin-bottom:10px;">
 
-                        <strong>
+                        <strong style="color:#ffffff;">
                             Clip {i}
                         </strong>
 
@@ -2327,10 +2595,11 @@ if video_file:
                 "📱 9:16 vertical framing",
             ]
 
-            if remove_silence:
+            if analyze_silence:
 
                 details.append(
-                    "⏸️ Silence analysis"
+                    f"⏸️ Silence analysis "
+                    f"({result['silence_count']} detected)"
                 )
 
             if result[
@@ -2341,7 +2610,9 @@ if video_file:
                     "🎙️ Synchronized auto captions"
                 )
 
-            if music_file:
+            if result[
+                "music_added"
+            ]:
 
                 details.append(
                     f"🎵 {music_mood} music"
@@ -2398,20 +2669,20 @@ else:
              style="
                 margin-top:25px;
                 text-align:center;
-                padding:28px;
+                padding:30px;
              ">
 
             <div style="
-                font-size:28px;
-                margin-bottom:8px;
+                font-size:30px;
+                margin-bottom:9px;
             ">
                 🎬
             </div>
 
             <div style="
                 color:#ffffff;
-                font-size:16px;
-                font-weight:800;
+                font-size:17px;
+                font-weight:850;
             ">
                 Your editing studio is ready.
             </div>
@@ -2419,7 +2690,7 @@ else:
             <div style="
                 color:#858796;
                 font-size:13px;
-                margin-top:6px;
+                margin-top:7px;
             ">
                 Upload footage above to create your first Short.
             </div>
