@@ -1,4 +1,4 @@
-```python
+
 import re
 import shutil
 import subprocess
@@ -2428,4 +2428,3 @@ else:
         """,
         unsafe_allow_html=True,
     )
-```
