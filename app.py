@@ -3,7 +3,6 @@ import re
 import shutil
 import subprocess
 import tempfile
-import textwrap
 from pathlib import Path
 
 import cv2
@@ -38,233 +37,236 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 
 
 # ============================================================
-# HTML RENDER HELPER
-# ============================================================
-
-def render_html(markup):
-    """
-    Render multiline HTML safely without indentation
-    accidentally turning it into a Markdown code block.
-    """
-    st.markdown(
-        textwrap.dedent(markup).strip(),
-        unsafe_allow_html=True,
-    )
-
-
-# ============================================================
 # CUSTOM CSS
 # ============================================================
 
-render_html(
+st.markdown(
     """
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+<style>
 
-    html, body, [class*="css"] {
-        font-family: 'Inter', sans-serif;
-    }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-    .stApp {
-        background:
-            radial-gradient(circle at 15% 10%, rgba(91, 55, 160, 0.20), transparent 28%),
-            radial-gradient(circle at 85% 20%, rgba(38, 94, 180, 0.16), transparent 25%),
-            linear-gradient(135deg, #070910 0%, #0b0e18 45%, #090b12 100%);
-        color: #ffffff;
-    }
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+}
 
-    .block-container {
-        max-width: 1200px;
-        padding-top: 2rem;
-        padding-bottom: 3rem;
-    }
+.stApp {
+    background:
+        radial-gradient(
+            circle at 10% 5%,
+            rgba(112, 72, 255, 0.16),
+            transparent 28%
+        ),
+        radial-gradient(
+            circle at 90% 15%,
+            rgba(40, 120, 255, 0.12),
+            transparent 25%
+        ),
+        linear-gradient(
+            135deg,
+            #06070c 0%,
+            #0a0d15 48%,
+            #080a10 100%
+        );
+    color: #ffffff;
+}
 
-    section[data-testid="stSidebar"] {
-        background:
-            linear-gradient(180deg, #090b13 0%, #0c101b 100%);
-        border-right: 1px solid rgba(255,255,255,0.07);
-    }
+.block-container {
+    max-width: 1200px;
+    padding-top: 2rem;
+    padding-bottom: 4rem;
+}
 
-    section[data-testid="stSidebar"] * {
-        color: #f4f5f7;
-    }
 
-    .hero {
-        padding: 42px 36px;
-        border-radius: 28px;
-        margin-bottom: 26px;
-        background:
-            radial-gradient(circle at 80% 20%, rgba(115, 76, 255, 0.25), transparent 30%),
-            radial-gradient(circle at 20% 80%, rgba(0, 170, 255, 0.13), transparent 30%),
-            linear-gradient(135deg, rgba(20,24,38,0.98), rgba(10,12,21,0.98));
-        border: 1px solid rgba(143, 109, 255, 0.22);
-        box-shadow: 0 20px 70px rgba(0,0,0,0.35);
+/* ================= SIDEBAR ================= */
+
+section[data-testid="stSidebar"] {
+    background:
+        linear-gradient(
+            180deg,
+            #080a11 0%,
+            #0c101a 100%
+        );
+    border-right: 1px solid rgba(255,255,255,0.07);
+}
+
+section[data-testid="stSidebar"] * {
+    color: #f4f5f8;
+}
+
+.sidebar-brand {
+    padding-bottom: 18px;
+}
+
+.sidebar-brand-title {
+    font-size: 25px;
+    font-weight: 800;
+    letter-spacing: -0.7px;
+}
+
+.sidebar-brand-subtitle {
+    color: #8993a8;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+
+/* ================= HERO ================= */
+
+.hero-box {
+    background:
+        radial-gradient(
+            circle at 82% 20%,
+            rgba(118, 74, 255, 0.22),
+            transparent 32%
+        ),
+        radial-gradient(
+            circle at 18% 80%,
+            rgba(0, 164, 255, 0.10),
+            transparent 32%
+        ),
+        linear-gradient(
+            135deg,
+            rgba(19,23,36,0.98),
+            rgba(9,11,19,0.98)
+        );
+    border: 1px solid rgba(143,109,255,0.22);
+    border-radius: 26px;
+    padding: 38px;
+    margin-bottom: 25px;
+    box-shadow: 0 20px 70px rgba(0,0,0,0.32);
+}
+
+.hero-title {
+    font-size: 43px;
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -1.8px;
+    margin-bottom: 13px;
+}
+
+.hero-gradient {
+    background: linear-gradient(
+        90deg,
+        #a98cff,
+        #62b9ff
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hero-description {
+    color: #aeb6c8;
+    font-size: 16px;
+    line-height: 1.7;
+    max-width: 720px;
+}
+
+
+/* ================= NATIVE STREAMLIT ELEMENTS ================= */
+
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    background: rgba(15,18,28,0.72);
+    border-color: rgba(255,255,255,0.07) !important;
+    border-radius: 18px !important;
+}
+
+div[data-testid="stFileUploader"] {
+    background: rgba(255,255,255,0.025);
+    border: 1px dashed rgba(140,120,255,0.38);
+    border-radius: 18px;
+    padding: 8px;
+}
+
+div.stButton > button {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 12px;
+    font-weight: 700;
+    border: 1px solid rgba(255,255,255,0.10);
+    background: linear-gradient(
+        135deg,
+        #714cff,
+        #4b79ff
+    );
+    color: white;
+}
+
+div.stButton > button:hover {
+    border-color: rgba(255,255,255,0.28);
+}
+
+.stDownloadButton > button {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 12px;
+    font-weight: 700;
+}
+
+div[data-baseweb="select"] > div {
+    background: rgba(255,255,255,0.045);
+    border-radius: 10px;
+}
+
+.stSlider {
+    padding-top: 4px;
+}
+
+[data-testid="stMetric"] {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 12px;
+}
+
+
+/* ================= FEATURE CARDS ================= */
+
+.feature-title {
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.feature-text {
+    color: #929bad;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.feature-icon {
+    font-size: 27px;
+}
+
+
+/* ================= INFO ================= */
+
+.small-note {
+    color: #7f899d;
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+
+/* ================= MOBILE ================= */
+
+@media (max-width: 768px) {
+
+    .hero-box {
+        padding: 26px 22px;
     }
 
     .hero-title {
-        font-size: 44px;
-        line-height: 1.05;
-        font-weight: 800;
-        letter-spacing: -1.8px;
-        margin: 0;
+        font-size: 32px;
     }
 
-    .hero-title span {
-        background: linear-gradient(90deg, #a98cff, #62b9ff);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+    .hero-description {
+        font-size: 14px;
     }
+}
 
-    .hero-subtitle {
-        color: #aeb6c8;
-        font-size: 17px;
-        line-height: 1.7;
-        margin-top: 14px;
-        max-width: 720px;
-    }
-
-    .badges {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 9px;
-        margin-top: 22px;
-    }
-
-    .badge {
-        display: inline-block;
-        padding: 8px 13px;
-        border-radius: 999px;
-        background: rgba(255,255,255,0.055);
-        border: 1px solid rgba(255,255,255,0.09);
-        color: #dfe4ef;
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .card {
-        background: rgba(16, 19, 29, 0.78);
-        border: 1px solid rgba(255,255,255,0.075);
-        border-radius: 20px;
-        padding: 22px;
-        margin-bottom: 18px;
-        box-shadow: 0 12px 40px rgba(0,0,0,0.20);
-    }
-
-    .card h3 {
-        margin-top: 0;
-        margin-bottom: 8px;
-    }
-
-    .muted {
-        color: #929bad;
-    }
-
-    .feature {
-        min-height: 135px;
-    }
-
-    .feature-icon {
-        font-size: 28px;
-        margin-bottom: 10px;
-    }
-
-    .status-card {
-        padding: 18px;
-        border-radius: 16px;
-        background: rgba(255,255,255,0.035);
-        border: 1px solid rgba(255,255,255,0.07);
-        margin: 8px 0;
-    }
-
-    .success-box {
-        padding: 18px;
-        border-radius: 16px;
-        background: rgba(38, 190, 125, 0.08);
-        border: 1px solid rgba(38, 190, 125, 0.25);
-    }
-
-    .warning-box {
-        padding: 18px;
-        border-radius: 16px;
-        background: rgba(245, 180, 60, 0.08);
-        border: 1px solid rgba(245, 180, 60, 0.22);
-    }
-
-    div.stButton > button {
-        width: 100%;
-        border-radius: 12px;
-        min-height: 46px;
-        font-weight: 700;
-        border: 1px solid rgba(255,255,255,0.10);
-        background: linear-gradient(135deg, #714cff, #4b79ff);
-        color: white;
-    }
-
-    div.stButton > button:hover {
-        border-color: rgba(255,255,255,0.25);
-        transform: translateY(-1px);
-    }
-
-    .stDownloadButton > button {
-        width: 100%;
-        border-radius: 12px;
-        min-height: 46px;
-        font-weight: 700;
-    }
-
-    [data-testid="stFileUploader"] {
-        background: rgba(255,255,255,0.025);
-        border: 1px dashed rgba(150,130,255,0.35);
-        border-radius: 18px;
-        padding: 8px;
-    }
-
-    div[data-baseweb="select"] > div {
-        background: rgba(255,255,255,0.04);
-        border-radius: 10px;
-    }
-
-    .stSlider {
-        padding-top: 4px;
-    }
-
-    .small-note {
-        color: #7f899d;
-        font-size: 12px;
-        line-height: 1.5;
-    }
-
-    .sidebar-brand {
-        padding: 12px 4px 24px 4px;
-    }
-
-    .sidebar-title {
-        font-size: 25px;
-        font-weight: 800;
-        color: #ffffff;
-    }
-
-    .sidebar-subtitle {
-        color: #8993a8;
-        font-size: 12px;
-        margin-top: 5px;
-    }
-
-    @media (max-width: 768px) {
-        .hero {
-            padding: 30px 22px;
-        }
-
-        .hero-title {
-            font-size: 34px;
-        }
-
-        .hero-subtitle {
-            font-size: 15px;
-        }
-    }
-    </style>
-    """
+</style>
+""",
+    unsafe_allow_html=True,
 )
 
 
@@ -286,9 +288,7 @@ FFMPEG = get_ffmpeg()
 
 
 def run_ffmpeg(args, timeout=900):
-    command = [FFMPEG, "-y"] + [
-        str(item) for item in args
-    ]
+    command = [FFMPEG, "-y"] + [str(item) for item in args]
 
     process = subprocess.run(
         command,
@@ -304,7 +304,6 @@ def run_ffmpeg(args, timeout=900):
             if process.stderr
             else "Unknown FFmpeg error."
         )
-
         raise RuntimeError(error_text)
 
     return process
@@ -428,22 +427,15 @@ def detect_moments(
     number_of_clips,
     target_clip_length,
 ):
-    cap = cv2.VideoCapture(
-        str(video_path)
-    )
+    cap = cv2.VideoCapture(str(video_path))
 
     if not cap.isOpened():
         raise RuntimeError(
             "Could not open the uploaded video."
         )
 
-    fps = cap.get(
-        cv2.CAP_PROP_FPS
-    )
-
-    frame_count = cap.get(
-        cv2.CAP_PROP_FRAME_COUNT
-    )
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
 
     if fps <= 0:
         fps = 25.0
@@ -456,7 +448,6 @@ def detect_moments(
 
     if total_duration <= 0:
         cap.release()
-
         raise RuntimeError(
             "Could not determine video duration."
         )
@@ -512,15 +503,16 @@ def detect_moments(
 
     cap.release()
 
+    max_start = max(
+        0,
+        total_duration - target_clip_length,
+    )
+
     if not scores:
 
         starts = np.linspace(
             0,
-            max(
-                0,
-                total_duration
-                - target_clip_length,
-            ),
+            max_start,
             number_of_clips,
         )
 
@@ -529,7 +521,10 @@ def detect_moments(
                 float(start),
                 min(
                     target_clip_length,
-                    total_duration - start,
+                    max(
+                        1,
+                        total_duration - start,
+                    ),
                 ),
             )
             for start in starts
@@ -550,65 +545,39 @@ def detect_moments(
 
     for timestamp, _score in scores_sorted:
 
-        if (
-            timestamp
-            + target_clip_length
-            > total_duration
-        ):
-            timestamp = max(
-                0,
-                total_duration
-                - target_clip_length,
-            )
+        timestamp = min(
+            max(0, timestamp),
+            max_start,
+        )
 
         if all(
-            abs(
-                timestamp - existing
-            ) >= min_gap
+            abs(timestamp - existing) >= min_gap
             for existing in selected
         ):
-            selected.append(
-                timestamp
-            )
+            selected.append(timestamp)
 
-        if (
-            len(selected)
-            >= number_of_clips
-        ):
+        if len(selected) >= number_of_clips:
             break
 
-    if (
-        len(selected)
-        < number_of_clips
-    ):
+    if len(selected) < number_of_clips:
 
         fallback_starts = np.linspace(
             0,
-            max(
-                0,
-                total_duration
-                - target_clip_length,
-            ),
+            max_start,
             number_of_clips,
         )
 
         for start in fallback_starts:
 
+            start = float(start)
+
             if all(
-                abs(
-                    float(start)
-                    - existing
-                ) >= min_gap
+                abs(start - existing) >= min_gap
                 for existing in selected
             ):
-                selected.append(
-                    float(start)
-                )
+                selected.append(start)
 
-            if (
-                len(selected)
-                >= number_of_clips
-            ):
+            if len(selected) >= number_of_clips:
                 break
 
     selected = sorted(
@@ -679,9 +648,7 @@ def detect_silence(video_path):
         start_value = float(start)
 
         if index < len(ends):
-            end_value = float(
-                ends[index]
-            )
+            end_value = float(ends[index])
         else:
             end_value = start_value
 
@@ -691,8 +658,7 @@ def detect_silence(video_path):
                 end_value,
                 max(
                     0,
-                    end_value
-                    - start_value,
+                    end_value - start_value,
                 ),
             )
         )
@@ -701,7 +667,7 @@ def detect_silence(video_path):
 
 
 # ============================================================
-# JOIN
+# JOIN CLIPS
 # ============================================================
 
 def join_clips(
@@ -721,8 +687,7 @@ def join_clips(
         return
 
     concat_file = (
-        output_path.parent
-        / "concat.txt"
+        output_path.parent / "concat.txt"
     )
 
     with open(
@@ -791,9 +756,7 @@ def mix_music(
     music_path,
     output_path,
 ):
-    video_has_audio = has_audio(
-        video_path
-    )
+    video_has_audio = has_audio(video_path)
 
     if video_has_audio:
 
@@ -908,23 +871,15 @@ def create_srt(
             )
         )
 
-        total_seconds = int(
-            seconds
-        )
+        if milliseconds >= 1000:
+            milliseconds = 0
+            seconds += 1
 
-        hours = (
-            total_seconds
-            // 3600
-        )
+        total_seconds = int(seconds)
 
-        minutes = (
-            total_seconds % 3600
-        ) // 60
-
-        secs = (
-            total_seconds
-            % 60
-        )
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        secs = total_seconds % 60
 
         return (
             f"{hours:02d}:"
@@ -1079,10 +1034,8 @@ def process_video(
 
         progress.progress(5)
 
-        total_duration = (
-            get_media_duration(
-                input_path
-            )
+        total_duration = get_media_duration(
+            input_path
         )
 
         if total_duration <= 0:
@@ -1103,15 +1056,10 @@ def process_video(
             )
 
             try:
-
-                silence_sections = (
-                    detect_silence(
-                        input_path
-                    )
+                silence_sections = detect_silence(
+                    input_path
                 )
-
             except Exception:
-
                 silence_sections = []
 
         progress.progress(15)
@@ -1197,8 +1145,7 @@ def process_video(
         )
 
         joined_path = (
-            work_dir
-            / "joined.mp4"
+            work_dir / "joined.mp4"
         )
 
         join_clips(
@@ -1214,18 +1161,14 @@ def process_video(
 
         current_video = joined_path
 
-        if (
-            add_music
-            and music_path
-        ):
+        if add_music and music_path:
 
             status.info(
                 "🎵 Adding your music..."
             )
 
             music_output = (
-                work_dir
-                / "music_mix.mp4"
+                work_dir / "music_mix.mp4"
             )
 
             mix_music(
@@ -1234,9 +1177,7 @@ def process_video(
                 music_output,
             )
 
-            current_video = (
-                music_output
-            )
+            current_video = music_output
 
         progress.progress(86)
 
@@ -1253,22 +1194,18 @@ def process_video(
             )
 
             subtitle_path = (
-                work_dir
-                / "captions.srt"
+                work_dir / "captions.srt"
             )
 
             caption_video = (
-                work_dir
-                / "captioned.mp4"
+                work_dir / "captioned.mp4"
             )
 
             try:
 
-                captions_created = (
-                    create_srt(
-                        current_video,
-                        subtitle_path,
-                    )
+                captions_created = create_srt(
+                    current_video,
+                    subtitle_path,
                 )
 
                 if captions_created:
@@ -1279,12 +1216,9 @@ def process_video(
                         caption_video,
                     )
 
-                    current_video = (
-                        caption_video
-                    )
+                    current_video = caption_video
 
             except Exception:
-
                 captions_created = False
 
         progress.progress(96)
@@ -1326,28 +1260,34 @@ def process_video(
 
 
 # ============================================================
+# SESSION STATE
+# ============================================================
+
+if "clipflow_result" not in st.session_state:
+    st.session_state.clipflow_result = None
+
+
+# ============================================================
 # SIDEBAR
 # ============================================================
 
 with st.sidebar:
 
-    render_html(
+    st.markdown(
         """
         <div class="sidebar-brand">
-            <div class="sidebar-title">
+            <div class="sidebar-brand-title">
                 🎬 ClipFlow <span style="color:#8d6cff;">AI</span>
             </div>
-
-            <div class="sidebar-subtitle">
+            <div class="sidebar-brand-subtitle">
                 Creative Video Studio
             </div>
         </div>
-        """
+        """,
+        unsafe_allow_html=True,
     )
 
-    st.markdown(
-        "### ⚙️ Project Settings"
-    )
+    st.markdown("### ⚙️ Project Settings")
 
     platform = st.selectbox(
         "Platform",
@@ -1377,7 +1317,7 @@ with st.sidebar:
     st.markdown("---")
 
     music_mood = st.selectbox(
-        "Music mood",
+        "🎵 Music mood",
         [
             "Auto",
             "Energetic",
@@ -1389,7 +1329,7 @@ with st.sidebar:
     )
 
     add_music = st.checkbox(
-        "🎵 Add my own licensed music",
+        "Add my own licensed music",
         value=False,
     )
 
@@ -1419,14 +1359,15 @@ with st.sidebar:
 
     st.markdown("---")
 
-    render_html(
+    st.markdown(
         """
         <div class="small-note">
             Your uploaded media is processed for the current
             session. Use only content and music you have rights
             to use.
         </div>
-        """
+        """,
+        unsafe_allow_html=True,
     )
 
 
@@ -1434,97 +1375,89 @@ with st.sidebar:
 # HERO
 # ============================================================
 
-render_html(
+st.markdown(
     """
-    <div class="hero">
+    <div class="hero-box">
         <div class="hero-title">
             Turn long videos into
-            <span>short-form content.</span>
+            <span class="hero-gradient">
+                short-form content.
+            </span>
         </div>
 
-        <div class="hero-subtitle">
+        <div class="hero-description">
             ClipFlow AI finds engaging moments, creates
             vertical 9:16 clips, optionally adds your own
             licensed music, and generates captions.
         </div>
-
-        <div class="badges">
-            <div class="badge">⚡ Smart Moments</div>
-            <div class="badge">📱 9:16 Vertical</div>
-            <div class="badge">💬 Auto Captions</div>
-            <div class="badge">🎵 Custom Music</div>
-            <div class="badge">🔒 Your Content</div>
-        </div>
     </div>
-    """
+    """,
+    unsafe_allow_html=True,
 )
 
 
 # ============================================================
-# FEATURES
+# FEATURE SECTION
 # ============================================================
 
-col1, col2, col3 = st.columns(3)
+st.markdown("### ✨ Built for Short-Form Creators")
 
-with col1:
+feature1, feature2, feature3 = st.columns(3)
 
-    render_html(
-        """
-        <div class="card feature">
-            <div class="feature-icon">🧠</div>
+with feature1:
 
-            <h3>Smart Detection</h3>
+    with st.container(border=True):
 
-            <div class="muted">
+        st.markdown("### 🧠 Smart Detection")
+
+        st.markdown(
+            """
+            <div class="feature-text">
                 Detect visually active moments and turn them
-                into short clips.
+                into short clips automatically.
             </div>
-        </div>
-        """
-    )
+            """,
+            unsafe_allow_html=True,
+        )
 
-with col2:
+with feature2:
 
-    render_html(
-        """
-        <div class="card feature">
-            <div class="feature-icon">📱</div>
+    with st.container(border=True):
 
-            <h3>Vertical Ready</h3>
+        st.markdown("### 📱 Vertical Ready")
 
-            <div class="muted">
-                Automatically format your content for Shorts,
-                Reels and TikTok.
+        st.markdown(
+            """
+            <div class="feature-text">
+                Format your content for YouTube Shorts,
+                Instagram Reels and TikTok.
             </div>
-        </div>
-        """
-    )
+            """,
+            unsafe_allow_html=True,
+        )
 
-with col3:
+with feature3:
 
-    render_html(
-        """
-        <div class="card feature">
-            <div class="feature-icon">💬</div>
+    with st.container(border=True):
 
-            <h3>Auto Captions</h3>
+        st.markdown("### 💬 Auto Captions")
 
-            <div class="muted">
-                Generate readable captions locally with
+        st.markdown(
+            """
+            <div class="feature-text">
+                Generate readable captions locally using
                 faster-whisper.
             </div>
-        </div>
-        """
-    )
+            """,
+            unsafe_allow_html=True,
+        )
 
 
 # ============================================================
 # UPLOAD
 # ============================================================
 
-st.markdown(
-    "## 🎥 Upload your video"
-)
+st.markdown("## 🎥 Upload your video")
 
 uploaded_video = st.file_uploader(
     "Drop your video here",
@@ -1539,15 +1472,7 @@ uploaded_video = st.file_uploader(
 
 
 # ============================================================
-# SESSION STATE
-# ============================================================
-
-if "clipflow_result" not in st.session_state:
-    st.session_state.clipflow_result = None
-
-
-# ============================================================
-# MAIN PROCESSING
+# MAIN
 # ============================================================
 
 if uploaded_video:
@@ -1572,7 +1497,7 @@ if uploaded_video:
         try:
 
             # ------------------------------------------------
-            # Save input video
+            # Save video safely
             # ------------------------------------------------
 
             suffix = (
@@ -1582,11 +1507,16 @@ if uploaded_video:
                 or ".mp4"
             )
 
-            temp_input = Path(
-                tempfile.mktemp(
-                    suffix=suffix
-                )
+            input_temp = tempfile.NamedTemporaryFile(
+                delete=False,
+                suffix=suffix,
             )
+
+            temp_input = Path(
+                input_temp.name
+            )
+
+            input_temp.close()
 
             with open(
                 temp_input,
@@ -1601,13 +1531,7 @@ if uploaded_video:
             # Preview
             # ------------------------------------------------
 
-            render_html(
-                """
-                <div class="card">
-                    <h3>👀 Source Preview</h3>
-                </div>
-                """
-            )
+            st.markdown("### 👀 Source Preview")
 
             st.video(
                 uploaded_video
@@ -1629,11 +1553,16 @@ if uploaded_video:
                     or ".mp3"
                 )
 
-                temp_music = Path(
-                    tempfile.mktemp(
-                        suffix=music_suffix
-                    )
+                music_temp = tempfile.NamedTemporaryFile(
+                    delete=False,
+                    suffix=music_suffix,
                 )
+
+                temp_music = Path(
+                    music_temp.name
+                )
+
+                music_temp.close()
 
                 with open(
                     temp_music,
@@ -1648,50 +1577,49 @@ if uploaded_video:
             # Settings
             # ------------------------------------------------
 
-            st.markdown(
-                "### 🎛️ Your Settings"
-            )
+            st.markdown("### 🎛️ Your Settings")
 
-            c1, c2, c3, c4 = (
-                st.columns(4)
-            )
+            c1, c2, c3, c4 = st.columns(4)
 
             with c1:
-
                 st.metric(
                     "Platform",
                     platform,
                 )
 
             with c2:
-
                 st.metric(
                     "Clip Length",
                     f"{target_length}s",
                 )
 
             with c3:
-
                 st.metric(
                     "Clips",
                     number_of_clips,
                 )
 
             with c4:
-
                 st.metric(
                     "Music",
                     "On"
                     if (
                         add_music
-                        and music_file
+                        and music_file is not None
                     )
                     else "Off",
                 )
 
+            if add_music:
+                st.caption(
+                    f"Music mood: {music_mood}"
+                )
+
             # ------------------------------------------------
-            # Process
+            # Process button
             # ------------------------------------------------
+
+            st.markdown("")
 
             if st.button(
                 "🚀 Create My Clips",
@@ -1716,9 +1644,9 @@ if uploaded_video:
                         analyze_silence=analyze_silence,
                     )
 
-                    st.session_state.clipflow_result = (
-                        result
-                    )
+                    st.session_state.clipflow_result = result
+
+                st.rerun()
 
         except Exception as error:
 
@@ -1729,7 +1657,6 @@ if uploaded_video:
             with st.expander(
                 "Technical details"
             ):
-
                 st.code(
                     str(error)
                 )
@@ -1763,19 +1690,8 @@ if result:
 
     st.markdown("---")
 
-    render_html(
-        """
-        <div class="success-box">
-            <h2 style="margin-top:0;">
-                🎉 Your video is ready!
-            </h2>
-
-            <div style="color:#a9b4c7;">
-                ClipFlow AI successfully created your
-                short-form video.
-            </div>
-        </div>
-        """
+    st.success(
+        "🎉 Your ClipFlow AI video is ready!"
     )
 
     result_path = Path(
@@ -1784,34 +1700,29 @@ if result:
 
     if result_path.exists():
 
+        st.markdown("### 🎬 Final Video")
+
         st.video(
             str(result_path)
         )
 
-        st.markdown(
-            "### 📊 Result Details"
-        )
+        st.markdown("### 📊 Result Details")
 
-        r1, r2, r3 = (
-            st.columns(3)
-        )
+        r1, r2, r3 = st.columns(3)
 
         with r1:
-
             st.metric(
                 "Source Duration",
                 f"{result['duration']:.1f}s",
             )
 
         with r2:
-
             st.metric(
                 "Clips Created",
                 result["clips"],
             )
 
         with r3:
-
             st.metric(
                 "Captions",
                 "Yes"
@@ -1843,14 +1754,9 @@ if result:
                 )
             )
 
-            render_html(
-                f"""
-                <div class="status-card">
-                    🔇 Silence analysis detected
-                    <strong>{silence_count}</strong>
-                    silence section(s).
-                </div>
-                """
+            st.info(
+                f"🔇 Silence analysis detected "
+                f"{silence_count} silence section(s)."
             )
 
     else:
@@ -1865,18 +1771,9 @@ if result:
 # FOOTER
 # ============================================================
 
-render_html(
-    """
-    <div style="
-        text-align:center;
-        color:#687286;
-        font-size:12px;
-        padding-top:40px;
-        padding-bottom:10px;
-    ">
-        ClipFlow AI · Creative Video Studio
-        <br>
-        Built for short-form creators.
-    </div>
-    """
+st.markdown("---")
+
+st.caption(
+    "🎬 ClipFlow AI · Creative Video Studio · "
+    "Built for short-form creators."
 )
