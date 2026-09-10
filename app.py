@@ -3,6 +3,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import textwrap
 from pathlib import Path
 
 import cv2
@@ -37,202 +38,241 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 
 
 # ============================================================
+# HTML RENDER HELPER
+# ============================================================
+
+def render_html(markup):
+    """
+    Render multiline HTML safely without indentation
+    accidentally turning it into a Markdown code block.
+    """
+    st.markdown(
+        textwrap.dedent(markup).strip(),
+        unsafe_allow_html=True,
+    )
+
+
+# ============================================================
 # CUSTOM CSS
 # ============================================================
 
-st.markdown(
+render_html(
     """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif;
-}
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
+    }
 
-.stApp {
-    background:
-        radial-gradient(circle at 15% 10%, rgba(91, 55, 160, 0.20), transparent 28%),
-        radial-gradient(circle at 85% 20%, rgba(38, 94, 180, 0.16), transparent 25%),
-        linear-gradient(135deg, #070910 0%, #0b0e18 45%, #090b12 100%);
-    color: #ffffff;
-}
+    .stApp {
+        background:
+            radial-gradient(circle at 15% 10%, rgba(91, 55, 160, 0.20), transparent 28%),
+            radial-gradient(circle at 85% 20%, rgba(38, 94, 180, 0.16), transparent 25%),
+            linear-gradient(135deg, #070910 0%, #0b0e18 45%, #090b12 100%);
+        color: #ffffff;
+    }
 
-.block-container {
-    max-width: 1200px;
-    padding-top: 2rem;
-    padding-bottom: 3rem;
-}
+    .block-container {
+        max-width: 1200px;
+        padding-top: 2rem;
+        padding-bottom: 3rem;
+    }
 
-section[data-testid="stSidebar"] {
-    background:
-        linear-gradient(180deg, #090b13 0%, #0c101b 100%);
-    border-right: 1px solid rgba(255,255,255,0.07);
-}
+    section[data-testid="stSidebar"] {
+        background:
+            linear-gradient(180deg, #090b13 0%, #0c101b 100%);
+        border-right: 1px solid rgba(255,255,255,0.07);
+    }
 
-section[data-testid="stSidebar"] * {
-    color: #f4f5f7;
-}
+    section[data-testid="stSidebar"] * {
+        color: #f4f5f7;
+    }
 
-.hero {
-    padding: 42px 36px;
-    border-radius: 28px;
-    margin-bottom: 26px;
-    background:
-        radial-gradient(circle at 80% 20%, rgba(115, 76, 255, 0.25), transparent 30%),
-        radial-gradient(circle at 20% 80%, rgba(0, 170, 255, 0.13), transparent 30%),
-        linear-gradient(135deg, rgba(20,24,38,0.98), rgba(10,12,21,0.98));
-    border: 1px solid rgba(143, 109, 255, 0.22);
-    box-shadow: 0 20px 70px rgba(0,0,0,0.35);
-}
+    .hero {
+        padding: 42px 36px;
+        border-radius: 28px;
+        margin-bottom: 26px;
+        background:
+            radial-gradient(circle at 80% 20%, rgba(115, 76, 255, 0.25), transparent 30%),
+            radial-gradient(circle at 20% 80%, rgba(0, 170, 255, 0.13), transparent 30%),
+            linear-gradient(135deg, rgba(20,24,38,0.98), rgba(10,12,21,0.98));
+        border: 1px solid rgba(143, 109, 255, 0.22);
+        box-shadow: 0 20px 70px rgba(0,0,0,0.35);
+    }
 
-.hero-title {
-    font-size: 44px;
-    line-height: 1.05;
-    font-weight: 800;
-    letter-spacing: -1.8px;
-    margin: 0;
-}
+    .hero-title {
+        font-size: 44px;
+        line-height: 1.05;
+        font-weight: 800;
+        letter-spacing: -1.8px;
+        margin: 0;
+    }
 
-.hero-title span {
-    background: linear-gradient(90deg, #a98cff, #62b9ff);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
+    .hero-title span {
+        background: linear-gradient(90deg, #a98cff, #62b9ff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
 
-.hero-subtitle {
-    color: #aeb6c8;
-    font-size: 17px;
-    line-height: 1.7;
-    margin-top: 14px;
-    max-width: 720px;
-}
+    .hero-subtitle {
+        color: #aeb6c8;
+        font-size: 17px;
+        line-height: 1.7;
+        margin-top: 14px;
+        max-width: 720px;
+    }
 
-.badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 9px;
-    margin-top: 22px;
-}
+    .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+        margin-top: 22px;
+    }
 
-.badge {
-    display: inline-block;
-    padding: 8px 13px;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.055);
-    border: 1px solid rgba(255,255,255,0.09);
-    color: #dfe4ef;
-    font-size: 12px;
-    font-weight: 600;
-}
+    .badge {
+        display: inline-block;
+        padding: 8px 13px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.055);
+        border: 1px solid rgba(255,255,255,0.09);
+        color: #dfe4ef;
+        font-size: 12px;
+        font-weight: 600;
+    }
 
-.card {
-    background: rgba(16, 19, 29, 0.78);
-    border: 1px solid rgba(255,255,255,0.075);
-    border-radius: 20px;
-    padding: 22px;
-    margin-bottom: 18px;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.20);
-}
+    .card {
+        background: rgba(16, 19, 29, 0.78);
+        border: 1px solid rgba(255,255,255,0.075);
+        border-radius: 20px;
+        padding: 22px;
+        margin-bottom: 18px;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.20);
+    }
 
-.card h3 {
-    margin-top: 0;
-    margin-bottom: 8px;
-}
+    .card h3 {
+        margin-top: 0;
+        margin-bottom: 8px;
+    }
 
-.muted {
-    color: #929bad;
-}
+    .muted {
+        color: #929bad;
+    }
 
-.feature {
-    min-height: 135px;
-}
+    .feature {
+        min-height: 135px;
+    }
 
-.feature-icon {
-    font-size: 28px;
-    margin-bottom: 10px;
-}
+    .feature-icon {
+        font-size: 28px;
+        margin-bottom: 10px;
+    }
 
-.status-card {
-    padding: 18px;
-    border-radius: 16px;
-    background: rgba(255,255,255,0.035);
-    border: 1px solid rgba(255,255,255,0.07);
-    margin: 8px 0;
-}
+    .status-card {
+        padding: 18px;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.035);
+        border: 1px solid rgba(255,255,255,0.07);
+        margin: 8px 0;
+    }
 
-.success-box {
-    padding: 18px;
-    border-radius: 16px;
-    background: rgba(38, 190, 125, 0.08);
-    border: 1px solid rgba(38, 190, 125, 0.25);
-}
+    .success-box {
+        padding: 18px;
+        border-radius: 16px;
+        background: rgba(38, 190, 125, 0.08);
+        border: 1px solid rgba(38, 190, 125, 0.25);
+    }
 
-.warning-box {
-    padding: 18px;
-    border-radius: 16px;
-    background: rgba(245, 180, 60, 0.08);
-    border: 1px solid rgba(245, 180, 60, 0.22);
-}
+    .warning-box {
+        padding: 18px;
+        border-radius: 16px;
+        background: rgba(245, 180, 60, 0.08);
+        border: 1px solid rgba(245, 180, 60, 0.22);
+    }
 
-div.stButton > button {
-    width: 100%;
-    border-radius: 12px;
-    min-height: 46px;
-    font-weight: 700;
-    border: 1px solid rgba(255,255,255,0.10);
-    background: linear-gradient(135deg, #714cff, #4b79ff);
-    color: white;
-}
+    div.stButton > button {
+        width: 100%;
+        border-radius: 12px;
+        min-height: 46px;
+        font-weight: 700;
+        border: 1px solid rgba(255,255,255,0.10);
+        background: linear-gradient(135deg, #714cff, #4b79ff);
+        color: white;
+    }
 
-div.stButton > button:hover {
-    border-color: rgba(255,255,255,0.25);
-    transform: translateY(-1px);
-}
+    div.stButton > button:hover {
+        border-color: rgba(255,255,255,0.25);
+        transform: translateY(-1px);
+    }
 
-.stDownloadButton > button {
-    width: 100%;
-    border-radius: 12px;
-    min-height: 46px;
-    font-weight: 700;
-}
+    .stDownloadButton > button {
+        width: 100%;
+        border-radius: 12px;
+        min-height: 46px;
+        font-weight: 700;
+    }
 
-[data-testid="stFileUploader"] {
-    background: rgba(255,255,255,0.025);
-    border: 1px dashed rgba(150,130,255,0.35);
-    border-radius: 18px;
-    padding: 8px;
-}
+    [data-testid="stFileUploader"] {
+        background: rgba(255,255,255,0.025);
+        border: 1px dashed rgba(150,130,255,0.35);
+        border-radius: 18px;
+        padding: 8px;
+    }
 
-div[data-baseweb="select"] > div {
-    background: rgba(255,255,255,0.04);
-    border-radius: 10px;
-}
+    div[data-baseweb="select"] > div {
+        background: rgba(255,255,255,0.04);
+        border-radius: 10px;
+    }
 
-.stSlider {
-    padding-top: 4px;
-}
+    .stSlider {
+        padding-top: 4px;
+    }
 
-.small-note {
-    color: #7f899d;
-    font-size: 12px;
-    line-height: 1.5;
-}
-</style>
-""",
-    unsafe_allow_html=True,
+    .small-note {
+        color: #7f899d;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .sidebar-brand {
+        padding: 12px 4px 24px 4px;
+    }
+
+    .sidebar-title {
+        font-size: 25px;
+        font-weight: 800;
+        color: #ffffff;
+    }
+
+    .sidebar-subtitle {
+        color: #8993a8;
+        font-size: 12px;
+        margin-top: 5px;
+    }
+
+    @media (max-width: 768px) {
+        .hero {
+            padding: 30px 22px;
+        }
+
+        .hero-title {
+            font-size: 34px;
+        }
+
+        .hero-subtitle {
+            font-size: 15px;
+        }
+    }
+    </style>
+    """
 )
 
 
 # ============================================================
-# FFmpeg
+# FFMPEG
 # ============================================================
 
 def get_ffmpeg():
-    """
-    Returns an FFmpeg executable.
-    Uses imageio-ffmpeg when available.
-    Falls back to system ffmpeg.
-    """
     if imageio_ffmpeg is not None:
         try:
             return imageio_ffmpeg.get_ffmpeg_exe()
@@ -246,10 +286,9 @@ FFMPEG = get_ffmpeg()
 
 
 def run_ffmpeg(args, timeout=900):
-    """
-    Execute FFmpeg safely.
-    """
-    command = [FFMPEG, "-y"] + [str(x) for x in args]
+    command = [FFMPEG, "-y"] + [
+        str(item) for item in args
+    ]
 
     process = subprocess.run(
         command,
@@ -260,7 +299,12 @@ def run_ffmpeg(args, timeout=900):
     )
 
     if process.returncode != 0:
-        error_text = process.stderr[-5000:] if process.stderr else "Unknown FFmpeg error."
+        error_text = (
+            process.stderr[-5000:]
+            if process.stderr
+            else "Unknown FFmpeg error."
+        )
+
         raise RuntimeError(error_text)
 
     return process
@@ -271,9 +315,6 @@ def run_ffmpeg(args, timeout=900):
 # ============================================================
 
 def get_media_duration(video_path):
-    """
-    Get media duration using FFmpeg output.
-    """
     command = [
         FFMPEG,
         "-i",
@@ -299,13 +340,14 @@ def get_media_duration(video_path):
     minutes = int(match.group(2))
     seconds = float(match.group(3))
 
-    return hours * 3600 + minutes * 60 + seconds
+    return (
+        hours * 3600
+        + minutes * 60
+        + seconds
+    )
 
 
 def has_audio(video_path):
-    """
-    Robust audio detection.
-    """
     command = [
         FFMPEG,
         "-v",
@@ -330,14 +372,10 @@ def has_audio(video_path):
 
 
 # ============================================================
-# VIDEO FILTERS
+# VIDEO
 # ============================================================
 
 def get_vertical_filter():
-    """
-    Convert video to 9:16 vertical format.
-    Output: 1080x1920.
-    """
     return (
         "scale=1080:1920:"
         "force_original_aspect_ratio=decrease,"
@@ -352,11 +390,6 @@ def create_vertical_clip(
     start_time,
     duration,
 ):
-    """
-    Create one vertical clip.
-    """
-    video_filter = get_vertical_filter()
-
     args = [
         "-ss",
         str(max(0, start_time)),
@@ -365,7 +398,7 @@ def create_vertical_clip(
         "-t",
         str(max(1, duration)),
         "-vf",
-        video_filter,
+        get_vertical_filter(),
         "-c:v",
         "libx264",
         "-preset",
@@ -390,31 +423,48 @@ def create_vertical_clip(
 # SMART MOMENT DETECTION
 # ============================================================
 
-def detect_moments(video_path, number_of_clips, target_clip_length):
-    """
-    Simple computer-vision based moment detection.
-
-    Uses frame-to-frame visual differences to identify
-    active sections of a video.
-    """
-    cap = cv2.VideoCapture(str(video_path))
+def detect_moments(
+    video_path,
+    number_of_clips,
+    target_clip_length,
+):
+    cap = cv2.VideoCapture(
+        str(video_path)
+    )
 
     if not cap.isOpened():
-        raise RuntimeError("Could not open the uploaded video.")
+        raise RuntimeError(
+            "Could not open the uploaded video."
+        )
 
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    fps = cap.get(
+        cv2.CAP_PROP_FPS
+    )
+
+    frame_count = cap.get(
+        cv2.CAP_PROP_FRAME_COUNT
+    )
 
     if fps <= 0:
         fps = 25.0
 
-    total_duration = frame_count / fps if frame_count > 0 else 0
+    total_duration = (
+        frame_count / fps
+        if frame_count > 0
+        else 0
+    )
 
     if total_duration <= 0:
         cap.release()
-        raise RuntimeError("Could not determine video duration.")
 
-    sample_interval = max(1, int(fps * 2))
+        raise RuntimeError(
+            "Could not determine video duration."
+        )
+
+    sample_interval = max(
+        1,
+        int(fps * 2),
+    )
 
     scores = []
     previous_frame = None
@@ -427,12 +477,28 @@ def detect_moments(video_path, number_of_clips, target_clip_length):
             break
 
         if frame_index % sample_interval == 0:
-            small = cv2.resize(frame, (160, 90))
-            gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
+
+            small = cv2.resize(
+                frame,
+                (160, 90),
+            )
+
+            gray = cv2.cvtColor(
+                small,
+                cv2.COLOR_BGR2GRAY,
+            )
 
             if previous_frame is not None:
-                difference = cv2.absdiff(gray, previous_frame)
-                score = float(np.mean(difference))
+
+                difference = cv2.absdiff(
+                    gray,
+                    previous_frame,
+                )
+
+                score = float(
+                    np.mean(difference)
+                )
+
                 scores.append(
                     (
                         frame_index / fps,
@@ -447,16 +513,24 @@ def detect_moments(video_path, number_of_clips, target_clip_length):
     cap.release()
 
     if not scores:
+
         starts = np.linspace(
             0,
-            max(0, total_duration - target_clip_length),
+            max(
+                0,
+                total_duration
+                - target_clip_length,
+            ),
             number_of_clips,
         )
 
         return [
             (
                 float(start),
-                min(target_clip_length, total_duration - start),
+                min(
+                    target_clip_length,
+                    total_duration - start,
+                ),
             )
             for start in starts
         ]
@@ -475,46 +549,82 @@ def detect_moments(video_path, number_of_clips, target_clip_length):
     )
 
     for timestamp, _score in scores_sorted:
-        if timestamp + target_clip_length > total_duration:
+
+        if (
+            timestamp
+            + target_clip_length
+            > total_duration
+        ):
             timestamp = max(
                 0,
-                total_duration - target_clip_length,
+                total_duration
+                - target_clip_length,
             )
 
         if all(
-            abs(timestamp - existing) >= min_gap
+            abs(
+                timestamp - existing
+            ) >= min_gap
             for existing in selected
         ):
-            selected.append(timestamp)
+            selected.append(
+                timestamp
+            )
 
-        if len(selected) >= number_of_clips:
+        if (
+            len(selected)
+            >= number_of_clips
+        ):
             break
 
-    if len(selected) < number_of_clips:
+    if (
+        len(selected)
+        < number_of_clips
+    ):
+
         fallback_starts = np.linspace(
             0,
-            max(0, total_duration - target_clip_length),
+            max(
+                0,
+                total_duration
+                - target_clip_length,
+            ),
             number_of_clips,
         )
 
         for start in fallback_starts:
+
             if all(
-                abs(float(start) - existing) >= min_gap
+                abs(
+                    float(start)
+                    - existing
+                ) >= min_gap
                 for existing in selected
             ):
-                selected.append(float(start))
+                selected.append(
+                    float(start)
+                )
 
-            if len(selected) >= number_of_clips:
+            if (
+                len(selected)
+                >= number_of_clips
+            ):
                 break
 
-    selected = sorted(selected[:number_of_clips])
+    selected = sorted(
+        selected[:number_of_clips]
+    )
 
     clips = []
 
     for start in selected:
+
         duration = min(
             target_clip_length,
-            max(1, total_duration - start),
+            max(
+                1,
+                total_duration - start,
+            ),
         )
 
         clips.append(
@@ -528,13 +638,10 @@ def detect_moments(video_path, number_of_clips, target_clip_length):
 
 
 # ============================================================
-# SILENCE DETECTION
+# SILENCE
 # ============================================================
 
 def detect_silence(video_path):
-    """
-    Detect long silence sections.
-    """
     command = [
         FFMPEG,
         "-i",
@@ -568,10 +675,13 @@ def detect_silence(video_path):
     silence_sections = []
 
     for index, start in enumerate(starts):
+
         start_value = float(start)
 
         if index < len(ends):
-            end_value = float(ends[index])
+            end_value = float(
+                ends[index]
+            )
         else:
             end_value = start_value
 
@@ -579,7 +689,11 @@ def detect_silence(video_path):
             (
                 start_value,
                 end_value,
-                max(0, end_value - start_value),
+                max(
+                    0,
+                    end_value
+                    - start_value,
+                ),
             )
         )
 
@@ -587,15 +701,17 @@ def detect_silence(video_path):
 
 
 # ============================================================
-# JOIN CLIPS
+# JOIN
 # ============================================================
 
-def join_clips(clip_paths, output_path):
-    """
-    Join multiple MP4 clips.
-    """
+def join_clips(
+    clip_paths,
+    output_path,
+):
     if not clip_paths:
-        raise RuntimeError("No clips were created.")
+        raise RuntimeError(
+            "No clips were created."
+        )
 
     if len(clip_paths) == 1:
         shutil.copy2(
@@ -604,18 +720,28 @@ def join_clips(clip_paths, output_path):
         )
         return
 
-    concat_file = output_path.parent / "concat.txt"
+    concat_file = (
+        output_path.parent
+        / "concat.txt"
+    )
 
     with open(
         concat_file,
         "w",
         encoding="utf-8",
     ) as file:
+
         for clip in clip_paths:
+
             safe_path = (
-                str(Path(clip).resolve())
+                str(
+                    Path(clip).resolve()
+                )
                 .replace("\\", "/")
-                .replace("'", "'\\''")
+                .replace(
+                    "'",
+                    "'\\''",
+                )
             )
 
             file.write(
@@ -648,6 +774,7 @@ def join_clips(clip_paths, output_path):
 
     try:
         run_ffmpeg(args)
+
     finally:
         try:
             concat_file.unlink()
@@ -656,7 +783,7 @@ def join_clips(clip_paths, output_path):
 
 
 # ============================================================
-# MUSIC MIXING
+# MUSIC
 # ============================================================
 
 def mix_music(
@@ -664,18 +791,17 @@ def mix_music(
     music_path,
     output_path,
 ):
-    """
-    Mix uploaded licensed/user-owned music with video audio.
-    """
-    video_has_audio = has_audio(video_path)
+    video_has_audio = has_audio(
+        video_path
+    )
 
     if video_has_audio:
+
         filter_complex = (
             "[0:a]volume=0.85[a0];"
             "[1:a]volume=0.18,"
             "aloop=loop=-1:size=2e+09,"
-            "atrim=0:"
-            "999999[a1];"
+            "atrim=0:999999[a1];"
             "[a0][a1]amix="
             "inputs=2:"
             "duration=first:"
@@ -708,11 +834,11 @@ def mix_music(
         ]
 
     else:
+
         filter_complex = (
             "[1:a]volume=0.20,"
             "aloop=loop=-1:size=2e+09,"
-            "atrim=0:"
-            "999999[aout]"
+            "atrim=0:999999[aout]"
         )
 
         args = [
@@ -747,10 +873,10 @@ def mix_music(
 # CAPTIONS
 # ============================================================
 
-def create_srt(video_path, subtitle_path):
-    """
-    Generate captions using faster-whisper.
-    """
+def create_srt(
+    video_path,
+    subtitle_path,
+):
     from faster_whisper import WhisperModel
 
     model = WhisperModel(
@@ -771,15 +897,34 @@ def create_srt(video_path, subtitle_path):
         return False
 
     def format_time(seconds):
+
         milliseconds = int(
-            round((seconds - int(seconds)) * 1000)
+            round(
+                (
+                    seconds
+                    - int(seconds)
+                )
+                * 1000
+            )
         )
 
-        total_seconds = int(seconds)
+        total_seconds = int(
+            seconds
+        )
 
-        hours = total_seconds // 3600
-        minutes = (total_seconds % 3600) // 60
-        secs = total_seconds % 60
+        hours = (
+            total_seconds
+            // 3600
+        )
+
+        minutes = (
+            total_seconds % 3600
+        ) // 60
+
+        secs = (
+            total_seconds
+            % 60
+        )
 
         return (
             f"{hours:02d}:"
@@ -798,6 +943,7 @@ def create_srt(video_path, subtitle_path):
             segments,
             start=1,
         ):
+
             start = format_time(
                 float(segment.start)
             )
@@ -809,7 +955,10 @@ def create_srt(video_path, subtitle_path):
             text = (
                 segment.text
                 .strip()
-                .replace("-->", "→")
+                .replace(
+                    "-->",
+                    "→",
+                )
             )
 
             file.write(
@@ -826,14 +975,18 @@ def burn_captions(
     subtitle_path,
     output_path,
 ):
-    """
-    Burn SRT captions into the video.
-    """
     subtitle_file = (
-        str(Path(subtitle_path).resolve())
+        str(
+            Path(
+                subtitle_path
+            ).resolve()
+        )
         .replace("\\", "/")
         .replace(":", "\\:")
-        .replace("'", "\\'")
+        .replace(
+            "'",
+            "\\'",
+        )
     )
 
     subtitle_filter = (
@@ -851,7 +1004,9 @@ def burn_captions(
         "MarginV=90'"
     )
 
-    audio_exists = has_audio(video_path)
+    audio_exists = has_audio(
+        video_path
+    )
 
     args = [
         "-i",
@@ -867,13 +1022,16 @@ def burn_captions(
     ]
 
     if audio_exists:
+
         args += [
             "-c:a",
             "aac",
             "-b:a",
             "160k",
         ]
+
     else:
+
         args += [
             "-an",
         ]
@@ -900,9 +1058,6 @@ def process_video(
     add_captions=False,
     analyze_silence=False,
 ):
-    """
-    Main ClipFlow AI processing pipeline.
-    """
     work_dir = Path(
         tempfile.mkdtemp(
             prefix="clipflow_"
@@ -910,6 +1065,7 @@ def process_video(
     )
 
     try:
+
         progress = st.progress(0)
         status = st.empty()
 
@@ -917,11 +1073,16 @@ def process_video(
         # Duration
         # ----------------------------------------------------
 
-        status.info("🔎 Reading video...")
+        status.info(
+            "🔎 Reading video..."
+        )
+
         progress.progress(5)
 
-        total_duration = get_media_duration(
-            input_path
+        total_duration = (
+            get_media_duration(
+                input_path
+            )
         )
 
         if total_duration <= 0:
@@ -930,27 +1091,33 @@ def process_video(
             )
 
         # ----------------------------------------------------
-        # Silence analysis
+        # Silence
         # ----------------------------------------------------
 
         silence_sections = []
 
         if analyze_silence:
+
             status.info(
                 "🔇 Analyzing silence..."
             )
 
             try:
-                silence_sections = detect_silence(
-                    input_path
+
+                silence_sections = (
+                    detect_silence(
+                        input_path
+                    )
                 )
+
             except Exception:
+
                 silence_sections = []
 
         progress.progress(15)
 
         # ----------------------------------------------------
-        # Detect moments
+        # Smart moments
         # ----------------------------------------------------
 
         status.info(
@@ -971,12 +1138,17 @@ def process_video(
 
         clip_paths = []
 
-        for index, (start, duration) in enumerate(
+        for index, (
+            start,
+            duration,
+        ) in enumerate(
             clip_specs,
             start=1,
         ):
+
             status.info(
-                f"🎬 Creating clip {index}/{len(clip_specs)}..."
+                f"🎬 Creating clip "
+                f"{index}/{len(clip_specs)}..."
             )
 
             clip_path = (
@@ -991,14 +1163,29 @@ def process_video(
                 duration,
             )
 
-            clip_paths.append(clip_path)
+            clip_paths.append(
+                clip_path
+            )
 
-            percentage = 30 + int(
-                (index / max(1, len(clip_specs))) * 40
+            percentage = (
+                30
+                + int(
+                    (
+                        index
+                        / max(
+                            1,
+                            len(clip_specs),
+                        )
+                    )
+                    * 40
+                )
             )
 
             progress.progress(
-                min(70, percentage)
+                min(
+                    70,
+                    percentage,
+                )
             )
 
         # ----------------------------------------------------
@@ -1027,7 +1214,11 @@ def process_video(
 
         current_video = joined_path
 
-        if add_music and music_path:
+        if (
+            add_music
+            and music_path
+        ):
+
             status.info(
                 "🎵 Adding your music..."
             )
@@ -1043,7 +1234,9 @@ def process_video(
                 music_output,
             )
 
-            current_video = music_output
+            current_video = (
+                music_output
+            )
 
         progress.progress(86)
 
@@ -1054,6 +1247,7 @@ def process_video(
         captions_created = False
 
         if add_captions:
+
             status.info(
                 "💬 Generating captions..."
             )
@@ -1069,27 +1263,34 @@ def process_video(
             )
 
             try:
-                captions_created = create_srt(
-                    current_video,
-                    subtitle_path,
+
+                captions_created = (
+                    create_srt(
+                        current_video,
+                        subtitle_path,
+                    )
                 )
 
                 if captions_created:
+
                     burn_captions(
                         current_video,
                         subtitle_path,
                         caption_video,
                     )
 
-                    current_video = caption_video
+                    current_video = (
+                        caption_video
+                    )
 
             except Exception:
+
                 captions_created = False
 
         progress.progress(96)
 
         # ----------------------------------------------------
-        # Save final result
+        # Final output
         # ----------------------------------------------------
 
         final_output = (
@@ -1117,6 +1318,7 @@ def process_video(
         }
 
     finally:
+
         shutil.rmtree(
             work_dir,
             ignore_errors=True,
@@ -1129,31 +1331,23 @@ def process_video(
 
 with st.sidebar:
 
-    st.markdown(
+    render_html(
         """
-        <div style="
-            padding: 12px 4px 24px 4px;
-        ">
-            <div style="
-                font-size: 25px;
-                font-weight: 800;
-            ">
+        <div class="sidebar-brand">
+            <div class="sidebar-title">
                 🎬 ClipFlow <span style="color:#8d6cff;">AI</span>
             </div>
 
-            <div style="
-                color:#8993a8;
-                font-size:12px;
-                margin-top:5px;
-            ">
+            <div class="sidebar-subtitle">
                 Creative Video Studio
             </div>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
-    st.markdown("### ⚙️ Project Settings")
+    st.markdown(
+        "### ⚙️ Project Settings"
+    )
 
     platform = st.selectbox(
         "Platform",
@@ -1202,6 +1396,7 @@ with st.sidebar:
     music_file = None
 
     if add_music:
+
         music_file = st.file_uploader(
             "Upload music",
             type=[
@@ -1224,15 +1419,14 @@ with st.sidebar:
 
     st.markdown("---")
 
-    st.markdown(
+    render_html(
         """
         <div class="small-note">
-        Your uploaded media is processed for the current
-        session. Use only content and music you have rights
-        to use.
+            Your uploaded media is processed for the current
+            session. Use only content and music you have rights
+            to use.
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
@@ -1240,7 +1434,7 @@ with st.sidebar:
 # HERO
 # ============================================================
 
-st.markdown(
+render_html(
     """
     <div class="hero">
         <div class="hero-title">
@@ -1262,8 +1456,7 @@ st.markdown(
             <div class="badge">🔒 Your Content</div>
         </div>
     </div>
-    """,
-    unsafe_allow_html=True,
+    """
 )
 
 
@@ -1274,56 +1467,64 @@ st.markdown(
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.markdown(
+
+    render_html(
         """
         <div class="card feature">
             <div class="feature-icon">🧠</div>
+
             <h3>Smart Detection</h3>
+
             <div class="muted">
                 Detect visually active moments and turn them
                 into short clips.
             </div>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 with col2:
-    st.markdown(
+
+    render_html(
         """
         <div class="card feature">
             <div class="feature-icon">📱</div>
+
             <h3>Vertical Ready</h3>
+
             <div class="muted">
                 Automatically format your content for Shorts,
                 Reels and TikTok.
             </div>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 with col3:
-    st.markdown(
+
+    render_html(
         """
         <div class="card feature">
             <div class="feature-icon">💬</div>
+
             <h3>Auto Captions</h3>
+
             <div class="muted">
                 Generate readable captions locally with
                 faster-whisper.
             </div>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
 # ============================================================
-# UPLOAD SECTION
+# UPLOAD
 # ============================================================
 
-st.markdown("## 🎥 Upload your video")
+st.markdown(
+    "## 🎥 Upload your video"
+)
 
 uploaded_video = st.file_uploader(
     "Drop your video here",
@@ -1357,6 +1558,7 @@ if uploaded_video:
     )
 
     if file_size_mb > 200:
+
         st.error(
             "❌ Video is larger than 200 MB. "
             "Please upload a smaller file."
@@ -1370,15 +1572,19 @@ if uploaded_video:
         try:
 
             # ------------------------------------------------
-            # Save uploaded video
+            # Save input video
             # ------------------------------------------------
+
+            suffix = (
+                Path(
+                    uploaded_video.name
+                ).suffix
+                or ".mp4"
+            )
 
             temp_input = Path(
                 tempfile.mktemp(
-                    suffix=Path(
-                        uploaded_video.name
-                    ).suffix
-                    or ".mp4"
+                    suffix=suffix
                 )
             )
 
@@ -1386,6 +1592,7 @@ if uploaded_video:
                 temp_input,
                 "wb",
             ) as file:
+
                 file.write(
                     uploaded_video.getbuffer()
                 )
@@ -1394,26 +1601,20 @@ if uploaded_video:
             # Preview
             # ------------------------------------------------
 
-            st.markdown(
-                '<div class="card">',
-                unsafe_allow_html=True,
-            )
-
-            st.markdown(
-                "### 👀 Source Preview"
+            render_html(
+                """
+                <div class="card">
+                    <h3>👀 Source Preview</h3>
+                </div>
+                """
             )
 
             st.video(
                 uploaded_video
             )
 
-            st.markdown(
-                "</div>",
-                unsafe_allow_html=True,
-            )
-
             # ------------------------------------------------
-            # Upload music
+            # Music
             # ------------------------------------------------
 
             if (
@@ -1438,52 +1639,59 @@ if uploaded_video:
                     temp_music,
                     "wb",
                 ) as file:
+
                     file.write(
                         music_file.getbuffer()
                     )
 
             # ------------------------------------------------
-            # Configuration summary
+            # Settings
             # ------------------------------------------------
 
             st.markdown(
                 "### 🎛️ Your Settings"
             )
 
-            c1, c2, c3, c4 = st.columns(4)
+            c1, c2, c3, c4 = (
+                st.columns(4)
+            )
 
             with c1:
+
                 st.metric(
                     "Platform",
                     platform,
                 )
 
             with c2:
+
                 st.metric(
                     "Clip Length",
                     f"{target_length}s",
                 )
 
             with c3:
+
                 st.metric(
                     "Clips",
                     number_of_clips,
                 )
 
             with c4:
+
                 st.metric(
                     "Music",
-                    "On" if (
+                    "On"
+                    if (
                         add_music
                         and music_file
-                    ) else "Off",
+                    )
+                    else "Off",
                 )
 
             # ------------------------------------------------
-            # Process button
+            # Process
             # ------------------------------------------------
-
-            st.markdown("")
 
             if st.button(
                 "🚀 Create My Clips",
@@ -1508,7 +1716,9 @@ if uploaded_video:
                         analyze_silence=analyze_silence,
                     )
 
-                    st.session_state.clipflow_result = result
+                    st.session_state.clipflow_result = (
+                        result
+                    )
 
         except Exception as error:
 
@@ -1519,6 +1729,7 @@ if uploaded_video:
             with st.expander(
                 "Technical details"
             ):
+
                 st.code(
                     str(error)
                 )
@@ -1526,12 +1737,14 @@ if uploaded_video:
         finally:
 
             if temp_input:
+
                 try:
                     temp_input.unlink()
                 except Exception:
                     pass
 
             if temp_music:
+
                 try:
                     temp_music.unlink()
                 except Exception:
@@ -1550,22 +1763,20 @@ if result:
 
     st.markdown("---")
 
-    st.markdown(
+    render_html(
         """
         <div class="success-box">
             <h2 style="margin-top:0;">
                 🎉 Your video is ready!
             </h2>
+
             <div style="color:#a9b4c7;">
                 ClipFlow AI successfully created your
                 short-form video.
             </div>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
-
-    st.markdown("")
 
     result_path = Path(
         result["path"]
@@ -1577,26 +1788,35 @@ if result:
             str(result_path)
         )
 
-        st.markdown("### 📊 Result Details")
+        st.markdown(
+            "### 📊 Result Details"
+        )
 
-        r1, r2, r3 = st.columns(3)
+        r1, r2, r3 = (
+            st.columns(3)
+        )
 
         with r1:
+
             st.metric(
                 "Source Duration",
                 f"{result['duration']:.1f}s",
             )
 
         with r2:
+
             st.metric(
                 "Clips Created",
                 result["clips"],
             )
 
         with r3:
+
             st.metric(
                 "Captions",
-                "Yes" if result["captions"] else "No",
+                "Yes"
+                if result["captions"]
+                else "No",
             )
 
         st.markdown("")
@@ -1623,15 +1843,14 @@ if result:
                 )
             )
 
-            st.markdown(
+            render_html(
                 f"""
                 <div class="status-card">
                     🔇 Silence analysis detected
                     <strong>{silence_count}</strong>
                     silence section(s).
                 </div>
-                """,
-                unsafe_allow_html=True,
+                """
             )
 
     else:
@@ -1646,7 +1865,7 @@ if result:
 # FOOTER
 # ============================================================
 
-st.markdown(
+render_html(
     """
     <div style="
         text-align:center;
@@ -1659,6 +1878,5 @@ st.markdown(
         <br>
         Built for short-form creators.
     </div>
-    """,
-    unsafe_allow_html=True,
+    """
 )
