@@ -133,7 +133,7 @@ section[data-testid="stSidebar"] * {
     border: 1px solid rgba(143,109,255,0.22);
     border-radius: 26px;
     padding: 38px;
-    margin-bottom: 25px;
+    margin-bottom: 10px;
     box-shadow: 0 20px 70px rgba(0,0,0,0.32);
 }
 
@@ -142,7 +142,6 @@ section[data-testid="stSidebar"] * {
     font-weight: 800;
     line-height: 1.08;
     letter-spacing: -1.8px;
-    margin-bottom: 13px;
 }
 
 .hero-gradient {
@@ -153,13 +152,6 @@ section[data-testid="stSidebar"] * {
     );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-}
-
-.hero-description {
-    color: #aeb6c8;
-    font-size: 16px;
-    line-height: 1.7;
-    max-width: 720px;
 }
 
 
@@ -220,24 +212,6 @@ div[data-baseweb="select"] > div {
 }
 
 
-/* ================= FEATURE CARDS ================= */
-
-.feature-title {
-    font-weight: 700;
-    font-size: 18px;
-}
-
-.feature-text {
-    color: #929bad;
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.feature-icon {
-    font-size: 27px;
-}
-
-
 /* ================= INFO ================= */
 
 .small-note {
@@ -257,10 +231,6 @@ div[data-baseweb="select"] > div {
 
     .hero-title {
         font-size: 32px;
-    }
-
-    .hero-description {
-        font-size: 14px;
     }
 }
 
@@ -1359,15 +1329,10 @@ with st.sidebar:
 
     st.markdown("---")
 
-    st.markdown(
-        """
-        <div class="small-note">
-            Your uploaded media is processed for the current
-            session. Use only content and music you have rights
-            to use.
-        </div>
-        """,
-        unsafe_allow_html=True,
+    st.caption(
+        "Your uploaded media is processed for the current "
+        "session. Use only content and music you have rights "
+        "to use."
     )
 
 
@@ -1384,15 +1349,15 @@ st.markdown(
                 short-form content.
             </span>
         </div>
-
-        <div class="hero-description">
-            ClipFlow AI finds engaging moments, creates
-            vertical 9:16 clips, optionally adds your own
-            licensed music, and generates captions.
-        </div>
     </div>
     """,
     unsafe_allow_html=True,
+)
+
+st.write(
+    "ClipFlow AI finds engaging moments, creates vertical "
+    "9:16 clips, optionally adds your own licensed music, "
+    "and generates captions."
 )
 
 
@@ -1410,14 +1375,9 @@ with feature1:
 
         st.markdown("### 🧠 Smart Detection")
 
-        st.markdown(
-            """
-            <div class="feature-text">
-                Detect visually active moments and turn them
-                into short clips automatically.
-            </div>
-            """,
-            unsafe_allow_html=True,
+        st.write(
+            "Detect visually active moments and turn them "
+            "into short clips automatically."
         )
 
 with feature2:
@@ -1426,14 +1386,9 @@ with feature2:
 
         st.markdown("### 📱 Vertical Ready")
 
-        st.markdown(
-            """
-            <div class="feature-text">
-                Format your content for YouTube Shorts,
-                Instagram Reels and TikTok.
-            </div>
-            """,
-            unsafe_allow_html=True,
+        st.write(
+            "Format your content for YouTube Shorts, "
+            "Instagram Reels and TikTok."
         )
 
 with feature3:
@@ -1442,14 +1397,9 @@ with feature3:
 
         st.markdown("### 💬 Auto Captions")
 
-        st.markdown(
-            """
-            <div class="feature-text">
-                Generate readable captions locally using
-                faster-whisper.
-            </div>
-            """,
-            unsafe_allow_html=True,
+        st.write(
+            "Generate readable captions locally using "
+            "faster-whisper."
         )
 
 
